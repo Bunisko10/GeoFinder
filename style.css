@@ -1,0 +1,543 @@
+/* ===============================
+  STYLE.CSS (posprzątany)
+================================ */
+
+/* ===============================
+   ZMIENNE / KOLORY
+================================ */
+:root{
+  --bg: #f3f5f7;
+  --card: #ffffff;
+  --border: #d8dde3;
+  --text: #101828;
+  --muted: #667085;
+  --accent: #b00020;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16,24,40,.06);
+}
+
+/* ===============================
+   PODSTAWY – EKRAN
+================================ */
+body{
+  font-family: Calibri, Arial, sans-serif;
+  line-height: 1.35;
+  color: var(--text);
+  background: var(--bg);
+
+  /* TO rozwiązuje "pustynię" po prawej:
+     - cała strona ma max szerokość
+     - jest wyśrodkowana */
+  max-width: 1600px;
+  margin: 18px auto;
+  padding: 0 18px;
+}
+
+h1{
+  font-size: 20px;
+  border-bottom: 2px solid #e6e8ec;
+  padding-bottom: 8px;
+  margin: 0 0 12px;
+}
+
+/* meta w zadaniach */
+.meta span{
+  font-size: 12px;
+  color: #666;
+  margin-right: 15px;
+}
+
+/* ===============================
+   PANEL FILTRÓW – GRID
+================================ */
+
+/* siatka kafelków */
+#filters{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+  margin: 12px 0 12px;
+  align-items: start;
+}
+
+.filter-group{
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 12px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+  margin: 0; /* ważne przy grid */
+}
+
+.filter-group strong{
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: var(--muted);
+}
+
+/* 🌍 ikonka przy nagłówkach filtrów */
+.filter-group strong::before{
+  content:"🌍";
+  margin-right:6px;
+}
+
+/* inputy/selecty */
+.filter-group input[type="text"],
+.filter-group input[type="number"],
+.filter-group select{
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  background: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.filter-group input[type="text"]:focus,
+.filter-group input[type="number"]:focus,
+.filter-group select:focus{
+  border-color: #b7c0cc;
+}
+
+/* checkboxy w poziomie (z zawijaniem) */
+.filter-group > div{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+}
+
+/* długie listy – ładne przewijanie */
+#filter-zrodlo,
+#filter-formula,
+#filter-rok,
+#filter-miesiac,
+#filter-poziom,
+#filter-dzial,
+#filter-typ{
+  max-height: 120px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+/* label + checkbox */
+.filter-group label{
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.filter-group input[type="checkbox"]{
+  accent-color: var(--accent);
+}
+
+/* zakresy (od-do) – żeby nie były mikroskopijne */
+.filter-group input[type="number"]{
+  max-width: 120px;
+}
+
+/* Na dużych ekranach wymuś 4 kolumny (ale TYLKO tu) */
+@media screen and (min-width: 1200px){
+  #filters{
+    grid-template-columns: repeat(4, minmax(240px, 1fr));
+  }
+}
+
+/* ===============================
+   PRZYCISKI
+================================ */
+button{
+  padding: 8px 12px;
+  font-size: 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+}
+
+button:hover{
+  filter: brightness(0.98);
+}
+
+button:active{
+  transform: translateY(1px);
+}
+
+/* rzędy przycisków – lekki oddech */
+button.no-print{
+  margin: 4px 6px 4px 0;
+}
+
+/* ===============================
+   PODSUMOWANIE
+================================ */
+#summary-box{
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border: 1px solid #e2e5ea;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  font-size: 13px;
+}
+
+#summary-box strong{
+  display:block;
+  margin-bottom:6px;
+}
+
+/* ===============================
+   TYTUŁ ARKUSZA (pod panelem)
+================================ */
+.sheet-title{
+  margin: 14px 0 6px;
+  font-size: 28px;
+  font-weight: 700;
+  border: none;
+  padding: 0;
+}
+
+.sheet-points{
+  margin-bottom: 14px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* ===============================
+   TREŚĆ ZADANIA
+================================ */
+.task{
+  margin-bottom: 20px;
+}
+
+p{
+  margin: 10px 0;
+}
+
+/* ===============================
+   OBRAZY – DOMYŚLNE (NIE MAPA)
+================================ */
+img{
+  display: block;
+  margin: 15px auto;
+  max-width: 100%;
+  max-height: 35vh;
+  height: auto;
+}
+
+/* ===============================
+   ZAŁĄCZNIKI (NIE MAPY)
+================================ */
+.attachment{
+  margin: 12px 0 14px;
+  padding: 6px;
+}
+
+.attachment img{
+  max-height: 28vh;
+  page-break-inside: avoid;
+}
+
+/* ===============================
+   MAPA CKE – EKRAN + NAPIS
+================================ */
+.map-wrapper{
+  position: relative;
+  margin: 20px 0;
+}
+
+.map-cke{
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  height: auto;
+  max-height: none; /* WYŁĄCZ globalny limit img */
+}
+
+.map-label{
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  border: 1px solid #000;
+}
+
+@media screen {
+  .map-cke{
+    max-height: 45vh;
+    width: auto;
+    height: auto;
+  }
+
+  /* jeśli wrzucisz mapę do kontenera z data-orientation */
+  .map-preview[data-orientation="landscape"] .map-cke{
+    transform: rotate(90deg);
+    transform-origin: center;
+    max-height: 60vh;
+  }
+}
+
+/* ===============================
+   MIEJSCE NA ODPOWIEDŹ
+================================ */
+.answer-space{
+  margin-top: 10px;
+}
+
+.answer-space .line{
+  border-bottom: 1px solid #686868;
+  height: 0.5cm;
+  margin-bottom: 13px;
+}
+
+.answer-space-clean{
+  margin-top: 10px;
+}
+
+.answer-space-clean .line{
+  border-bottom: 1px solid transparent;
+  height: 0.5cm;
+  margin-bottom: 13px;
+}
+
+.inline-answer{
+  display: inline-block;
+  border-bottom: 1px solid #686868;
+  min-width: 5cm;
+  height: 1em;
+  margin: 0 4px;
+  vertical-align: baseline;
+}
+
+.inline-answer.long{
+  min-width: 7cm;
+}
+
+/* ===============================
+   ROZWIĄZANIA (EKRAN)
+================================ */
+.solution{
+  margin-top: 10px;
+  border: 1px solid #ccc;
+  padding: 7px;
+  background: #f9f9f9;
+}
+
+.solution summary{
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.solution-content{
+  margin-top: 7px;
+}
+
+/* ===============================
+   TABELE
+================================ */
+.pf-table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.pf-table th,
+.pf-table td{
+  border: 1px solid #000;
+  padding: 6px;
+  vertical-align: middle;
+}
+
+.pf-table th{
+  text-align: center;
+  font-weight: bold;
+}
+
+.pf-table td:first-child{
+  text-align: left;
+}
+
+.pf-col{ width: 32px; }
+.pf-mark{ text-align: center; font-weight: bold; }
+
+.match-table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 20px;
+  border: 2px solid #000;
+}
+
+.match-table th,
+.match-table td{
+  border: 1px solid #000;
+  padding: 10px;
+  vertical-align: top;
+}
+
+.match-table th{
+  text-align: center;
+  font-weight: bold;
+  background-color: #f0f0f0;
+}
+
+.matura-table{
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.matura-table th,
+.matura-table td{
+  border: 1px solid #000;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.matura-table th{ font-weight: bold; }
+.matura-table td:nth-child(2){ text-align: left; }
+
+.justify-table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.justify-table td{
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.justify-table .ab-col{
+  width: 40px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.justify-table .type-col{ width: 120px; }
+.justify-table .middle-col{
+  text-align: center;
+  vertical-align: middle;
+  font-style: italic;
+}
+.justify-table .num-col{
+  width: 35px;
+  text-align: center;
+  font-weight: bold;
+}
+
+/* listy */
+.pf-text ol{
+  margin: 0;
+  padding-left: 20px;
+}
+
+.pf-text li{
+  margin-bottom: 10px;
+}
+
+/* ===============================
+   DRUK
+================================ */
+@media print{
+
+  .skip-print{ display: none !important; }
+
+  /* UI out */
+  .no-print{ display: none !important; }
+
+  body{
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+    max-width: none !important;
+  }
+
+  /* A4 */
+  @page{
+    size: A4;
+    margin: 0;
+  }
+
+  h1{
+    font-size: 17px;
+    border-bottom: 1px solid #000;
+    margin-bottom: 6px;
+  }
+
+  .sheet-title{
+    font-size: 38px;
+    margin-bottom: 12px;
+  }
+
+  .sheet-points{
+    display: inline-block;
+    padding-left: 15px;
+    border-left: 1px solid #000;
+    margin-left: 15px;
+  }
+
+  /* rozwiązania wg checkboxa */
+  body:not(.print-solutions) .solution{
+    display: none !important;
+  }
+  body.print-solutions .solution{
+    display: block !important;
+  }
+  body.print-solutions details.solution summary{
+    display: none !important;
+  }
+
+  /* zadania */
+  .task{
+    padding: 1mm 1mm;
+    max-width: 190mm;
+    margin: 5mm;
+    box-sizing: border-box;
+    margin-bottom: 3mm;
+  }
+
+  /* nie rozrywaj */
+  .solution,
+  .solution-content,
+  .pf-table,
+  .match-table,
+  .matura-table,
+  .answer-space,
+  .justify-table{
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* mapy full A4 */
+  body.map-page{
+    margin: 0 !important;
+  }
+  body.map-page .map-wrapper{
+    margin: -1cm;
+    page-break-after: always;
+  }
+  body.map-page .map-cke{
+    width: 21cm;
+    height: 29.7cm;
+    object-fit: contain;
+  }
+
+  img:not(.map-cke){
+    max-height: 7cm;
+  }
+}

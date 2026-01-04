@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>GeoFinder – generator arkuszy (nauczyciel) v.1.0 </title>
+  <link rel="stylesheet" href="../style_st.css">
+</head>
+
+<body data-mode="teacher">
+
+<h1 class="no-print">GeoFinder – generator arkusza (nauczyciel) v.1.0</h1>
+
+<!-- ================= PANEL FILTRÓW ================= -->
+<div class="no-print" id="filters">
+
+  <div class="filter-group">
+    <strong>Źródło:</strong>
+    <div id="filter-zrodlo"></div>
+  </div>
+  
+  
+  <div class="filter-group">
+    <strong>Formuła:</strong>
+    <div id="filter-formula"></div>
+  </div>
+  
+  <div class="filter-group">
+    <strong>Rok:</strong>
+    <div id="filter-rok"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Sesja:</strong>
+    <div id="filter-miesiac"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Poziom:</strong>
+    <div id="filter-poziom"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Dział:</strong>
+    <div id="filter-dzial"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Typ zadania:</strong>
+    <div id="filter-typ"></div>
+  </div>
+
+  <div class="filter-group">
+    <strong>Druk:</strong>
+    <label>
+      <input type="checkbox" id="print-solutions">
+      Drukuj z rozwiązaniami
+    </label>
+  </div>
+
+
+<div class="filter-group">
+  <strong>Sortowanie:</strong>
+  <select id="sort-mode">
+    <option value="default">Domyślne (arkusz → zadanie)</option>
+    <option value="year-desc">Rok ↓ (najnowsze)</option>
+    <option value="year-asc">Rok ↑ (najstarsze)</option>
+    <option value="dzial">Dział</option>
+    <option value="typ">Typ zadania</option>
+    <option value="shuffle">Losowo</option>
+  </select>
+</div>
+
+</div>
+
+<button class="no-print" onclick="generate()">Generuj arkusz</button>
+<button class="no-print" onclick="printAr()">Drukuj arkusz</button>
+<hr class="no-print">
+
+<!-- ================= TU POJAWIAJĄ SIĘ ZADANIA ================= -->
+<div id="tasks"></div>
+
+<script>
+/* =========================================================
+   DANE GLOBALNE
+========================================================= */
+let ALL_TASKS = [];
+const USED_ATTACHMENTS = new Set();
+const USED_MAPS = new Set();
+
+/* =========================================================
+   POMOCNICZE
+========================================================= */
+function uniqueValues(tasks, field) {
+  return [...new Set(
+    tasks
+      .map(t => t[field])
+      .filter(v => v !== null && v !== undefined && v !== "")
+  )];
+}
+
+function buildCheckboxes(containerId, field, values) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+
+  values.forEach(val => {
+    const label = document.createElement("label");
+    label.style.display = "block";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "filter";
+    checkbox.dataset.field = field;
+    checkbox.value = val;
+    checkbox.checked = true;
+
+    label.appendChild(checkbox);
+    label.append(" " + val);
+
+    container.appendChild(label);
+  });
+}
+
+/*======================================================
+FUNKCJA: sortowanie
+=======================================================*/
+function sortTasks(tasks) {
+  const mode = document.getElementById("sort-mode")?.value || "default";
+
+  const copy = [...tasks]; // ⚠️ zawsze kopia
+
+  switch (mode) {
+    case "year-desc":
+      return copy.sort((a, b) => (b.rok ?? 0) - (a.rok ?? 0));
+
+    case "year-asc":
+      return copy.sort((a, b) => (a.rok ?? 0) - (b.rok ?? 0));
+
+    case "dzial":
+      return copy.sort((a, b) =>
+        String(a.dzial).localeCompare(String(b.dzial), "pl")
+      );
+
+    case "typ":
+      return copy.sort((a, b) =>
+        String(a.typ).localeCompare(String(b.typ), "pl")
+      );f
+
+    case "shuffle":
+      return copy.sort(() => Math.random() - 0.5);
+
+    case "default":
+    default:
+      return sortDefaultCKE(copy);
+  }
+}
+
+function sortDefaultCKE(tasks) {
+  return tasks.sort((a, b) => {
+    // 1️⃣ arkusz (np. CKE_M23R_2025_maj)
+    const sheetA = a.id.split("_").slice(0, 4).join("_");
+    const sheetB = b.id.split("_").slice(0, 4).join("_");
+    if (sheetA !== sheetB) return sheetA.localeCompare(sheetB);
+
+    // 2️⃣ numer zadania (Z10, Z10_1, Z11_2 itd.)
+    return extractTaskNumber(a.id) - extractTaskNumber(b.id);
+  });
+}
+
+function extractTaskNumber(id) {
+  const match = id.match(/Z(\d+)(?:_(\d+))?/);
+  if (!match) return 999;
+  const main = Number(match[1]);
+  const sub = match[2] ? Number(match[2]) / 10 : 0;
+  return main + sub;
+}
+
+/*======================================================
+FUNKCJA: wstawianie attachmentów
+=======================================================*/
+async function processAttachments(wrapper, task) {
+  const placeholders = wrapper.querySelectorAll(".attachment-placeholder");
+
+  for (const ph of placeholders) {
+        console.log(
+      "ATT PLACEHOLDER",
+      ph.dataset.att,
+      "TASK",
+      task.id,
+      "→",
+      task[`${ph.dataset.att}_id`],
+      task[`${ph.dataset.att}_src`]
+    );
+
+    const which = ph.dataset.att; // att1 / att2
+    const attId   = task[`${which}_id`];
+    const attSrc  = task[`${which}_src`];
+
+    if (!attId || !attSrc) {
+      ph.remove();
+      continue;
+    }
+
+    if (USED_ATTACHMENTS.has(attSrc)) {
+      ph.remove();
+      continue;
+    }
+
+    try {
+      const res = await fetch(attSrc);
+      if (!res.ok) {
+        console.warn("Brak attachment:", attSrc);
+        ph.remove();
+        continue;
+      }
+
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+
+      const block = document.createElement("div");
+      block.className = "shared-attachment";
+      block.innerHTML = doc.body.innerHTML;
+
+      ph.replaceWith(block);
+      USED_ATTACHMENTS.add(attSrc);
+
+    } catch (e) {
+      console.error("Błąd attachment:", attSrc, e);
+      ph.remove();
+    }
+  }
+
+}
+
+/*======================================================
+FUNKCJA: wstawianie map
+=======================================================*/
+
+async function processMapForTask(task, container) {
+
+  // sprawdzamy att1
+  if (task.att1_type === "map" && task.att1_id) {
+    await insertMap(task.att1_id, task.att1_src, container);
+  }
+
+  // sprawdzamy att2
+  if (task.att2_type === "map" && task.att2_id) {
+    await insertMap(task.att2_id, task.att2_src, container);
+  }
+}
+
+async function insertMap(mapId, mapSrc, container) {
+  if (USED_MAPS.has(mapId)) return;
+
+  try {
+    const res = await fetch(mapSrc);
+    if (!res.ok) {
+      console.warn("Brak mapy:", mapId);
+      return;
+    }
+
+    /*======================================================
+  FUNKCJA pomocnicza: wstawianie map
+=======================================================*/
+
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    const page = document.createElement("div");
+    page.className = "map-page-wrapper";
+    page.innerHTML = doc.body.innerHTML;
+
+    container.appendChild(page);
+    USED_MAPS.add(mapId);
+
+  } catch (err) {
+    console.error("Błąd mapy:", mapId, err);
+  }
+}
+
+/* =========================================================
+   INICJALIZACJA FILTRÓW (AUTO Z JSONA)
+========================================================= */
+console.log("INIT FILTERS");
+async function initFilters() {
+  const res = await fetch("../data/tasks.json");
+  ALL_TASKS = await res.json();
+
+buildCheckboxes("filter-zrodlo", "zrodlo", uniqueValues(ALL_TASKS, "zrodlo"));
+buildCheckboxes("filter-formula", "formula", uniqueValues(ALL_TASKS, "formula"));
+buildCheckboxes("filter-rok", "rok", uniqueValues(ALL_TASKS, "rok"));
+buildCheckboxes("filter-miesiac", "miesiac", uniqueValues(ALL_TASKS, "miesiac"));
+buildCheckboxes("filter-poziom", "poziom", uniqueValues(ALL_TASKS, "poziom"));
+buildCheckboxes("filter-typ", "typ", uniqueValues(ALL_TASKS, "typ"));
+
+const allDzialy = [
+  ...uniqueValues(ALL_TASKS, "dzial_1"),
+  ...uniqueValues(ALL_TASKS, "dzial_2"),
+];
+
+const uniqueDzialy = [...new Set(allDzialy)];
+
+buildCheckboxes("filter-dzial", "dzial", uniqueDzialy);
+}
+
+initFilters();
+
+/* =========================================================
+   FILTRY
+========================================================= */
+function matches(task, filters) {
+  return Object.entries(filters).every(([field, allowed]) => {
+
+    // 🔹 SPECJALNY PRZYPADEK: DZIAŁ (dzial_1 LUB dzial_2)
+if (field === "dzial") {
+  const dzialyZadania = [task.dzial_1, task.dzial_2].filter(Boolean);
+
+  // ✅ jeśli filtr DZIAŁ jest aktywny,
+  // a zadanie nie ma żadnego działu → ODRZUĆ
+  if (dzialyZadania.length === 0) return false;
+
+  // OR: wystarczy jeden wspólny
+  return dzialyZadania.some(d =>
+    allowed.includes(String(d))
+  );
+}
+
+    // 🔹 NORMALNE POLA
+    if (
+      task[field] === undefined ||
+      task[field] === null ||
+      task[field] === ""
+    ) {
+      return true;
+    }
+
+    return allowed.includes(String(task[field]));
+  });
+}
+
+function getActiveFilters() {
+  const filters = {};
+
+  document.querySelectorAll(".filter:checked").forEach(el => {
+    const field = el.dataset.field;
+    filters[field] ??= [];
+    filters[field].push(String(el.value));
+  });
+
+  return filters;
+}
+/* =========================================================
+   placeholdery
+========================================================= */
+
+placeholdery
+
+function processMeta(wrapper, task) {
+  wrapper.querySelectorAll(".meta-placeholder").forEach(ph => {
+    const type = ph.dataset.meta;
+
+    switch (type) {
+      case "zrodlo":
+        ph.textContent = task.zrodlo ?? "";
+        break;
+
+      case "l_pkt":
+        ph.textContent = task.l_pkt ? `${task.l_pkt} pkt` : "";
+        break;
+
+      case "kompetencje":
+        const kompetencje = [
+          task.kompetencja_1,
+          task.kompetencja_2
+        ].filter(Boolean);
+
+        ph.textContent = kompetencje.join("; ");
+        break;
+    }
+  });
+}
+
+
+
+/* =========================================================
+   TRYB DRUKU – ROZWIĄZANIA
+========================================================= */
+function updatePrintMode() {
+  const checkbox = document.getElementById("print-solutions");
+
+  if (!checkbox) return;
+
+  if (checkbox.checked) {
+    document.body.classList.add("print-solutions");
+    document.querySelectorAll("details.solution").forEach(d => d.open = true);
+  } else {
+    document.body.classList.remove("print-solutions");
+    document.querySelectorAll("details.solution").forEach(d => d.open = false);
+  }
+}
+
+document.addEventListener("change", e => {
+  if (e.target.id === "print-solutions") {
+    updatePrintMode();
+  }
+});
+
+window.addEventListener("beforeprint", updatePrintMode);
+
+/* =========================================================
+   GENEROWANIE ARKUSZA
+========================================================= */
+async function generate() {
+  const filters = getActiveFilters();
+  const container = document.getElementById("tasks");
+  container.innerHTML = "";
+
+  // 🔥 reset stanu arkusza
+  USED_ATTACHMENTS.clear();
+  USED_MAPS.clear();
+
+  let count = 0;
+
+  // 1️⃣ filtr
+  const filtered = ALL_TASKS.filter(task => matches(task, filters));
+
+  // 2️⃣ sort
+  const sorted = sortTasks(filtered);
+
+  // 3️⃣ generowanie
+  for (const task of sorted) {
+
+    // 🔥 najpierw mapy (jeśli są)
+    await processMapForTask(task, container);
+
+    // potem zadanie
+    const response = await fetch(task.html);
+    if (!response.ok) continue;
+
+    const htmlText = await response.text();
+    const doc = new DOMParser().parseFromString(htmlText, "text/html");
+
+    const wrapper = document.createElement("div");
+    wrapper.className = "task";
+    wrapper.innerHTML = doc.body.innerHTML;
+
+    await processAttachments(wrapper, task);
+    processMeta(wrapper, task);
+
+    container.appendChild(wrapper);
+    count++;
+  }
+
+  if (count === 0) {
+    container.innerHTML = "<em>Brak zadań spełniających kryteria.</em>";
+  }
+
+  updatePrintMode();
+}
+async function printAr() {
+  await generate();
+
+  // daj przeglądarce domknąć render DOM (ważne w Chrome)
+  setTimeout(() => {
+    window.print();
+  }, 150);
+}
+
+</script>
+
+</body>
+</html>
+
