@@ -4,38 +4,53 @@
   <meta charset="UTF-8">
   <title>GeoFinder</title>
   <link rel="stylesheet" href="style_git.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600&family=Inter:wght@300;400&display=swap" rel="stylesheet">
 </head>
 
-<body class="landing">
+<body class="landing-page">
 
-  <h1>GeoFinder</h1>
-  <p class="subtitle">
-   Narzędzie do wyszukiwania i generowania zestawów zadań maturalnych z geografii na podstawie filtrów.
-  </p>
+  <div class="landing-bg"></div>
 
-  <div class="buttons">
-    <a href="print/generator_student.html" class="btn">
-      🎓 Wersja dla ucznia
-    </a>
+  <main class="landing-content">
+    <h1 class="logo">GeoFinder</h1>
 
-    <a href="print/generator_teacher.html" class="btn">
-      🧑‍🏫 Wersja dla nauczyciela
-    </a>
-  </div>
-
-  <div class="info">
-    <p>
-      Projekt edukacyjny – zadania generowane lokalnie w przeglądarce.
+    <p class="tagline">
+      Narzędzie do wyszukiwania i generowania zestawów<br>
+      zadań maturalnych z geografii
     </p>
 
-    <p>
-      W razie pytań lub chęci dodania własnych zadań:
-      <br>
-      <a href="https://github.com/Bunisko10/GeoFinder" target="_blank">
-        repozytorium na GitHubie
+    <div class="landing-buttons">
+      <a href="print/generator_student.html" class="btn btn-student">
+        <span class="emoji">🎓</span>
+        Wersja dla ucznia
       </a>
-    </p>
-  </div>
+
+      <a href="print/generator_teacher.html" class="btn btn-teacher">
+        <span class="emoji">🧑‍🏫</span>
+        Wersja dla nauczyciela
+      </a>
+    </div>
+
+    <section class="landing-contact">
+      <p>
+        W razie pytań, uwag lub chęci dodania własnych zadań
+        zapraszam do kontaktu:
+      </p>
+
+      <p class="contact-links">
+        <a href="https://github.com/bunisko10/GeoFinder" target="_blank">
+          📦 Repozytorium projektu
+        </a>
+        ·
+        <a href="mailto:bunisko10@gmail.com">
+          ✉️ Kontakt mailowy: bunisko10@gmail.com
+        </a>
+      </p>
+    </section>
+
+  </main>
 
 </body>
 </html>
