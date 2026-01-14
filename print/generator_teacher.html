@@ -370,9 +370,10 @@ async function processMapForTask(task) {
    INICJALIZACJA FILTRÓW (AUTO Z JSONA)
 ========================================================= */
 console.log("INIT FILTERS");
+const TASKS_URL = "../data/tasks_private.json";
 
 async function initFilters() {
-  const res = await fetch("../data/tasks.json");
+  const res = await fetch(`${TASKS_URL}?v=${Date.now()}`, { cache: "no-store" });
   ALL_TASKS = await res.json();
   TASK_BY_ID.clear();
   ALL_TASKS.forEach(t => TASK_BY_ID.set(String(t.id), t));
@@ -469,28 +470,57 @@ function toggleAllTasks(state) {
 
 
 function processMeta(wrapper, task) {
+  const isClasswork = document.body.classList.contains("print-classwork");
+
   wrapper.querySelectorAll(".meta-placeholder").forEach(ph => {
-    const type = ph.dataset.meta;
+    const key = ph.dataset.meta;
 
-    switch (type) {
-      case "zrodlo":
-        ph.textContent = task.zrodlo ?? "";
-        break;
+    // 🧮 punkty ZAWSZE
+if (key === "l_pkt") {
+  if (task.l_pkt !== undefined && task.l_pkt !== null) {
 
-      case "l_pkt":
-        ph.textContent = task.l_pkt ? `${task.l_pkt} pkt` : "";
-        break;
+    if (document.body.classList.contains("print-classwork")) {
+      ph.textContent = `____ / ${task.l_pkt} pkt`;
+    } else {
+      ph.textContent = `${task.l_pkt} pkt`;
+    }
 
-      case "kompetencje":
-        const kompetencje = [
-          task.kompetencja_1,
-          task.kompetencja_2
-        ].filter(Boolean);
+  } else {
+    ph.remove();
+  }
+  return;
+}
 
+    // 🧾 reszta mety – NIE w pracy klasowej
+    if (isClasswork) {
+      ph.remove();
+      return;
+    }
+
+    // 🧠 kompetencje = pole składane
+    if (key === "kompetencje") {
+      const kompetencje = [
+        task.kompetencja_1,
+        task.kompetencja_2
+      ].filter(Boolean);
+
+      if (kompetencje.length) {
         ph.textContent = kompetencje.join("; ");
-        break;
+      } else {
+        ph.remove();
+      }
+      return;
+    }
+
+    // 🔹 standardowe pola (zrodlo, rok itd.)
+    const val = task[key];
+    if (val !== undefined && val !== null && val !== "") {
+      ph.textContent = val;
+    } else {
+      ph.remove();
     }
   });
+  
 }
 
 /* =========================================================

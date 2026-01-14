@@ -64,6 +64,17 @@ body.landing {
   z-index: -1;
 }
 
+.landing-bg-mg {
+  position: fixed;
+  inset: 0;
+  background-image: url("./img/geo_bg_mg.jpg"); /* <-- TU JPG */
+  background-size: cover;
+  background-position: center;
+  filter: grayscale(100%) contrast(90%) brightness(1.1);
+  opacity: 0.15;
+  z-index: -1;
+}
+
 .landing-content {
   min-height: 100vh;
   display: flex;
@@ -124,6 +135,15 @@ body.landing {
 
 .btn-teacher:hover {
   background-color: #2c5282;
+}
+
+.btn-zadania {
+  background-color: #04305f; /* niebieski */
+  color: #fff;
+}
+
+.btn-zadania:hover {
+  background-color: #04305f;
 }
 
 /* stopka */

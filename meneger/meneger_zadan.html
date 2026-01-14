@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>GeoFinder – Menedżer zadań</title>
+
+  <!-- Jeśli chcesz, żeby linie/tabele wyglądały IDENTYCZNIE jak w generatorze,
+       dodaj też swój style.css (ścieżkę dopasuj do projektu) -->
+  <!-- <link rel="stylesheet" href="../style.css"> -->
+
+  <link rel="stylesheet" href="meneger.css">
+</head>
+
+<body>
+
+<h1>🗃️ Menedżer zadań – dodaj zadanie</h1>
+
+<form id="task-form">
+
+  <!-- ================= META GŁÓWNA ================= -->
+<fieldset class="grid">
+    <legend>📌 Meta dane</legend>
+
+    <label>Źródło
+        <select id="zrodlo_select">
+          <option value="CKE_M">Matury CKE</option>
+          <option value="CKE_I">Informator CKE</option>
+          <option value="CKE_P">Matury próbne CKE</option>
+          <option value="STU">Zadania od M.S.</option>
+          <option value="BOL">Zbiór Zadań Bolesławiec</option>
+          <option value="NER_M">Matury próbne Nowa Era</option>
+          <option value="OPE_M">Matury próbne Operon</option>
+          <option value="NER">Zbiory Nowa Era</option>
+          <option value="OPE">Zbiory Operon</option>
+          <option value="AUT">autorskie</option>
+          <option value="INN">inne</option>
+        </select>
+      <input type="text" id="zrodlo_other" placeholder="np. Zbiory własne">
+    </label>
+
+    <label>Formuła
+      <select id="formula">
+        <option value="null">brak danych</option>
+        <option value="2005">2005</option>
+        <option value="2015">2015</option>
+        <option value="2023">2023</option>
+      </select>
+    </label>
+
+    <label>Poziom
+      <select id="poziom">
+        <option value="null">brak danych</option>
+        <option value="Podstawowy">Podstawowy</option>
+        <option value="Rozszerzony">Rozszerzony</option>
+      </select>
+    </label>
+
+    <label>Rok
+      <input type="number" id="rok" placeholder="2025">
+    </label>
+
+    <label>Miesiąc / sesja
+      <select id="miesiac">
+        <option value="null">brak danych</option>
+        <option value="marzec">marzec</option>
+        <option value="maj">maj</option>
+        <option value="czerwiec">czerwiec</option>
+        <option value="sierpień">sierpień</option>
+      </select>
+    </label>
+
+    <label>Liczba punktów
+      <input type="number" id="l_pkt" placeholder="np. 2">
+    </label>
+
+    <label>Numer zadania (np. 10.1)
+      <input type="text" id="nr_zad" placeholder="10.1">
+    </label>
+
+    <label>Strona w arkuszu
+      <input type="number" id="strona">
+    </label>
+  </fieldset>
+
+
+  <!-- ================= KLASYFIKACJA ================= -->
+<fieldset class="grid">
+    <legend>📚 Klasyfikacja merytoryczna</legend>
+
+      <label>Dział 1
+        <input type="text" id="dzial_1" list="dzial_list" placeholder="np. Hydrosfera">
+        <datalist id="dzial_list"></datalist>
+      </label>
+
+      <label>Dział 2 (opcjonalnie)
+        <input type="text" id="dzial_2" list="dzial_list" placeholder="np. Pedosfera i biosfera">
+      </label>
+
+    <label>Zagadnienie
+<input type="text" id="zagadnienie" list="zagadnienie_list" placeholder="np. Lodowce górskie">
+      <datalist id="zagadnienie_list"></datalist>
+    </label>
+
+
+    <label>Typ zadania
+      <select id="typ">
+        <option value="wyjaśnij">wyjaśnij</option>
+        <option value="calc">oblicz</option>
+        <option value="zaznacz">zaznacz</option>
+        <option value="dopasuj">dopasuj</option>
+        <option value="uzasadnij">uzasadnij</option>
+        <option value="tabela">tabela</option>
+        <option value="pf">prawda/fałsz</option>
+        <option value="wypisz">wypisz/podaj</option>
+      </select>
+    </label>
+  </fieldset>
+
+
+  <!-- ================= KOMPETENCJE ================= -->
+<fieldset class="grid">
+  <legend>🧠 Kompetencje</legend>
+
+  <label>Kompetencja 1
+    <input type="text" id="kompetencja_1" list="kompetencje_list" placeholder="np. analiza danych">
+  </label>
+
+  <label>Kompetencja 2 (opcjonalnie)
+    <input type="text" id="kompetencja_2" list="kompetencje_list" placeholder="np. wnioskowanie">
+  </label>
+
+  <datalist id="kompetencje_list"></datalist>
+</fieldset>
+
+  <!-- ================= PRACA Z MATERIAŁEM ================= -->
+<fieldset class="grid">
+    <legend>🗺️ Praca z materiałem</legend>
+
+    <label><input type="checkbox" id="praca_z_topo"> Praca z mapą topograficzną</label>
+    <label><input type="checkbox" id="praca_z_mapa"> Praca z mapą</label>
+    <label><input type="checkbox" id="praca_z_tekstem"> Praca z tekstem źródłowym</label>
+    <label><input type="checkbox" id="praca_z_wykresem"> Praca z wykresem</label>
+  </fieldset>
+
+
+  <!-- ================= CZAS ================= -->
+<fieldset class="grid">
+    <legend>⏱️ Czas pracy</legend>
+
+    <label>Czas minimalny (min)
+      <input type="number" id="czas_min">
+    </label>
+
+    <label>Czas maksymalny (min)
+      <input type="number" id="czas_max">
+    </label>
+  </fieldset>
+
+
+  <!-- ================= PODSTAWA PROGRAMOWA ================= -->
+<fieldset class="grid">
+    <legend>📖 Podstawa programowa</legend>
+    <label><input type="text" id="pp1" placeholder="np. R: I.7"></label>
+    <label><input type="text" id="pp2" placeholder="np. R: IV.4"></label>
+    <label><input type="text" id="pp3"></label>
+    <label><input type="text" id="pp4"></label>
+    <label><input type="text" id="pp5"></label>
+    <label><input type="text" id="pp6"></label>
+  </fieldset>
+
+
+  <!-- ================= TREŚĆ ZADANIA ================= -->
+<fieldset class="tresc"> 
+    <legend>📝 Treść zadania (edytor)</legend>
+
+    <div class="block-bar">
+      <strong>Dodaj blok:</strong>
+      <button type="button" data-add="opis">Opis</button>
+      <button type="button" data-add="polecenie">Polecenie</button>
+      <button type="button" data-add="lines">Linie</button>
+      <button type="button" data-add="list">Lista</button>
+      <button type="button" data-add="table">Tabela</button>
+      <button type="button" data-add="pf">Prawda / Fałsz</button>
+      <button type="button" data-add="luki">Luki</button>
+      <button type="button" data-add="calc">Obliczenia</button>
+      <button type="button" data-add="abcd">ABCD</button>
+      <button type="button" data-add="justifyTable">Tabela z uzasadnieniem</button>
+      <button type="button" data-add="att1">Załącznik 1</button>
+      <button type="button" data-add="att2">Załącznik 2</button>
+
+    </div>
+
+    <div id="task-editor" class="task-editor" contenteditable="true">
+      <h2 id="auto-title" data-auto="true">[Tytuł zadania]</h2>
+
+
+      <div id="blocks"></div>
+    </div>
+
+  
+    <details class="solution-box">
+  <summary>Rozwiązanie</summary>
+
+  <div id="solution-editor" class="solution-editor" contenteditable="true">
+    <p><strong>Zasady oceniania:</strong></p>
+    <p>…</p>
+    <p><strong>Klucz / przykładowe odpowiedzi:</strong></p>
+    <p>…</p>
+  </div>
+</details>
+
+  </fieldset>
+
+
+  <!-- ================= ZAŁĄCZNIKI ================= -->
+<fieldset class="zal">
+  <legend>📎 Załączniki</legend>
+
+  <button type="button" id="reset-form">🧽 Reset załączników</button>
+
+
+  <h3>Załącznik 1 (att1)</h3>
+
+  <label>Typ
+    <select id="att1_type">
+      <option value="img">zdjęcie / wykres</option>
+      <option value="map">mapa</option>
+    </select>
+  </label>
+
+  <label>Plik
+    <input type="file" id="att1_file" accept=".png,.jpg,.jpeg,.webp,.html">
+  </label>
+
+  <label>Załącznik 1 dotyczy
+    <select id="att1_scope">
+      <option value="single">tylko tego zadania</option>
+      <option value="multi">wspólny dla kilku zadań</option>
+    </select>
+  </label>
+
+  <label>Wstęp do wiązki (gdy występuje)
+  <textarea id="att1_intro" rows="4"
+    placeholder="Np. Na wykresach przedstawiono..."></textarea>
+</label>
+
+
+  <label id="att1_scope_box" style="display:none;">
+    Dla jakich numerów zadań (np. 6-11 albo 10.1,10.2,11.1)
+    <input type="text" id="att1_tasks" placeholder="np. 6-11">
+  </label>
+
+  <label>Opis (ALT/podpis)
+    <input type="text" id="att1_desc" placeholder="np. Wykres amplitudy pływów">
+  </label>
+
+  <hr>
+
+  <h3>Załącznik 2 (att2)</h3>
+
+  <label>Typ
+    <select id="att2_type">
+      <option value="img">zdjęcie / wykres</option>
+      <option value="map">mapa</option>
+    </select>
+  </label>
+
+  <label>Plik
+    <input type="file" id="att2_file" accept=".png,.jpg,.jpeg,.webp,.html">
+  </label>
+
+  <label>Załącznik 2 dotyczy
+    <select id="att2_scope">
+      <option value="single">tylko tego zadania</option>
+      <option value="multi">wspólny dla kilku zadań</option>
+    </select>
+  </label>
+
+    <label>Wstęp do wiązki (gdy występuje)
+  <textarea id="att2_intro" rows="4"
+    placeholder="Np. Na wykresach przedstawiono..."></textarea>
+</label>
+
+
+  <label id="att2_scope_box" style="display:none;">
+    Dla jakich numerów zadań (np. 6-11 albo 10.1,10.2,11.1)
+    <input type="text" id="att2_tasks" placeholder="np. 6-11">
+  </label>
+
+  <label>Opis (ALT/podpis)
+    <input type="text" id="att2_desc" placeholder="np. Mapa topograficzna">
+  </label>
+
+  <p class="hint">W treści zadania wstaw „Załącznik 1” i/lub „Załącznik 2”.</p>
+</fieldset>
+
+
+  <!-- ================= UWAGI ================= -->
+  <fieldset class="uwa"> 
+    <legend>🗒️ Uwagi</legend>
+    <textarea id="uwagi" rows="4"></textarea>
+  </fieldset>
+
+
+  <button type="button" id="save-task">💾 Zapisz zadanie (później)</button>
+
+</form>
+
+<script src="meneger.js"></script>
+</body>
+</html>

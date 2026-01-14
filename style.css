@@ -229,7 +229,7 @@ img{
   display: block;
   margin: 15px auto;
   max-width: 100%;
-  max-height: 35vh;
+  max-height: 45vh;
   height: auto;
 }
 
@@ -242,7 +242,7 @@ img{
 }
 
 .attachment img{
-  max-height: 28vh;
+  max-height: 45vh;
   page-break-inside: avoid;
 }
 
@@ -447,6 +447,53 @@ img{
 
 .pf-text li{
   margin-bottom: 10px;
+}
+
+
+/* =========================
+   LISTA "wypisz": 1. ______ 2. ______
+   (pancerne, niezależne od innych stylów)
+========================= */
+.answer-list{
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  counter-reset: item;
+}
+
+.answer-list li{
+  counter-increment: item;
+  position: relative;
+  padding-left: 32px;   /* miejsce na "1." */
+  margin: 10px 0;
+}
+
+.answer-list li::before{
+  content: counter(item) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+}
+
+.answer-list li .line{
+  border-bottom: 1px solid #686868;
+  height: 0.55cm;
+  margin: 0;
+}
+
+
+.calc-grid{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 10px 0;
+}
+
+.calc-grid td{
+  border: 1px solid #bbb;
+  height: 18px;     /* możesz zwiększyć: 20-22 */
+  padding: 0;
 }
 
 /* ===============================

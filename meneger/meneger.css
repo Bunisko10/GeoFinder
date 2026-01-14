@@ -1,0 +1,362 @@
+body{
+  font-family: Calibri, Arial, sans-serif;
+  background: #f3f5f7;
+  margin: 0;
+  padding: 18px;
+  color: #111;
+}
+
+h1{ margin: 0 0 12px; }
+
+fieldset{
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+/* grid TYLKO dla tych z klasą .grid */
+fieldset.grid{
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px 14px;
+}
+
+@media (max-width: 900px){
+  fieldset.grid{ grid-template-columns: 1fr; }
+}
+
+/* a edytorowe fieldsety są normalne blokowe */
+fieldset.tresc,
+fieldset.zal,
+fieldset.uwa{
+  display: block; /* na wszelki wypadek */
+}
+
+
+legend{
+  font-weight: 700;
+  padding: 0 6px;
+}
+
+label{
+  display: block;
+  margin: 8px 0;
+}
+
+label small{
+  display: block;
+  color: #666;
+  font-size: 12px;
+  margin: 3px 0 6px;
+}
+
+input[type="text"], input[type="number"], select, textarea{
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 14px;
+}
+
+textarea{
+  font-family: Consolas, monospace;
+  font-size: 13px;
+}
+
+.hint{
+  margin: 8px 0 0;
+  color: #666;
+  font-size: 12px;
+}
+
+/* ===== EDYTOR ===== */
+.task-editor{
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 12px;
+  min-height: 260px;
+}
+
+.task-editor:focus{
+  outline: 2px solid #b7c0cc;
+  outline-offset: 2px;
+}
+
+/* ===== PASEK BLOKÓW ===== */
+.block-bar{
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  align-items: center;
+}
+
+.block-bar button{
+  padding: 6px 10px;
+  border: 1px solid #ccc;
+  background: #f7f7f7;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.block-bar button:hover{
+  background: #eaeaea;
+}
+
+/* ===== BLOKI ===== */
+.block{
+  border: 1px dashed #c9c9c9;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 12px 0;
+  background: #fcfcfd;
+}
+
+.block-tools{
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.block-tools button{
+  padding: 4px 8px;
+  border-radius: 8px;
+}
+
+/* ===== MINIMUM STYLI “MATURALNYCH” (żeby działało bez style.css) ===== */
+
+
+.matura-table, .pf-table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+
+.matura-table th, .matura-table td,
+.pf-table th, .pf-table td{
+  border: 1px solid #000;
+  padding: 6px 8px;
+}
+
+.pf-mark{
+  text-align: center;
+  font-weight: bold;
+}
+
+
+.solution-editor{
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+  min-height: 140px;
+}
+
+
+
+/* linie normalne */
+.answer-space .line{
+  border-bottom: 1px solid #686868;
+  height: 0.55cm;
+  margin: 6px 0;
+}
+
+/* linie "czyste" do obliczeń */
+.answer-space-clean .line{
+  border-bottom: 1px solid transparent;
+  height: 0.55cm;
+  margin: 6px 0;
+}
+
+
+.attachment-placeholder{
+  border: 2px dashed #b7c0cc;
+  border-radius: 10px;
+  padding: 10px;
+  background: #f7f9fc;
+}
+
+.inline-answer{
+  display: inline-block;
+  border-bottom: 1px solid #686868;
+  min-width: 5cm;
+  height: 1em;
+  margin: 0 4px;
+  vertical-align: baseline;
+}
+
+.attachment-placeholder{
+  border: 2px dashed #b7c0cc;
+  border-radius: 10px;
+  padding: 10px;
+  margin: 10px 0;
+  background: #f7f9fc;
+}
+
+.attachment-placeholder .att-title{
+  font-weight: 700;
+  margin: 0 0 4px;
+}
+
+.attachment-placeholder .att-note{
+  margin: 0;
+  font-size: 12px;
+  color: #667085;
+}
+
+.abcd p{
+  margin: 6px 0;
+}
+
+.gap-line{
+  margin: 10px 0;
+  line-height: 1.8;
+}
+
+.gap-unit{
+  display: inline;
+}
+
+.gap-text{
+  outline: none;
+  padding: 0 2px;
+}
+
+.gap-options{
+  margin: 0 6px;
+  color: #555;
+}
+
+
+.justify-table{
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.justify-table td{
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: middle;
+}
+
+.justify-table .ab-col{
+  width: 40px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.justify-table .type-col{ width: 120px; }
+.justify-table .middle-col{
+  text-align: center;
+  vertical-align: middle;
+  font-style: italic;
+}
+.justify-table .num-col{
+  width: 35px;
+  text-align: center;
+  font-weight: bold;
+}
+
+.calc-grid{
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  margin: 10px 0;
+}
+
+.calc-grid td{
+  border: 1px solid #bbb;
+  height: 18px;     /* możesz zwiększyć: 20-22 */
+  padding: 0;
+}
+
+/* =========================
+   LISTA "wypisz": 1. ______ 2. ______
+   (pancerne, niezależne od innych stylów)
+========================= */
+.answer-list{
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  counter-reset: item;
+}
+
+.answer-list li{
+  counter-increment: item;
+  position: relative;
+  padding-left: 32px;   /* miejsce na "1." */
+  margin: 10px 0;
+}
+
+.answer-list li::before{
+  content: counter(item) ".";
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: 700;
+}
+
+.answer-list li .line{
+  border-bottom: 1px solid #686868;
+  height: 0.55cm;
+  margin: 0;
+}
+
+
+
+.topbar{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-bottom:12px;
+}
+
+.tabs{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.tab{
+  border:1px solid #ccc;
+  background:#f7f7f7;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+.tab.is-active{
+  background:#fff;
+  border-color:#999;
+  font-weight:700;
+}
+
+.card{
+  background:#fff;
+  border:1px solid #ddd;
+  border-radius:12px;
+  padding:12px;
+  margin:12px 0;
+}
+
+.row{
+  display:flex;
+  gap:10px;
+  align-items:end;
+  flex-wrap:wrap;
+}
+
+.inner{
+  width:100%;
+  height:82vh;
+  border:1px solid #ddd;
+  border-radius:12px;
+  background:#fff;
+}

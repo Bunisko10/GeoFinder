@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>GeoFinder – Menedżer zadań</title>
+  <link rel="stylesheet" href="meneger.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <h1>🗃️ Menedżer zadań GeoFinder</h1>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab" id="tab-edit" role="tab" aria-selected="false" data-tab="edit">✏️ Edytuj</button>
+    </nav>
+  </header>
+
+  <!-- =================== DODAJ =================== -->
+  
+  <!-- =================== EDYTUJ =================== -->
+  <section id="panel-edit" class="panel" role="tabpanel" aria-labelledby="tab-edit">
+    <p class="hint">
+      Tryb edycji: wybierz zadanie z listy → wczytaj → edytuj → zapisz jako nową wersję albo nadpisz (później).
+    </p>
+
+    <fieldset class="card">
+      <legend>🔎 Wybór zadania</legend>
+
+      <div class="row">
+        <label>
+          Źródło listy
+          <select id="edit-source">
+            <option value="private" selected>tasks_private.json</option>
+            <option value="public">tasks.json</option>
+          </select>
+        </label>
+
+        <button type="button" id="refresh-list">🔄 Odśwież listę</button>
+      </div>
+
+      <label>
+        Zadanie
+        <select id="task-pick" size="12"></select>
+      </label>
+
+      <div class="row">
+        <button type="button" id="load-task">📥 Wczytaj do edytora</button>
+        <button type="button" id="open-html">🌐 Otwórz HTML w nowej karcie</button>
+      </div>
+    </fieldset>
+
+    <fieldset class="card">
+      <legend>🧩 Edytor (wersja robocza)</legend>
+
+      <p class="hint">
+        Na razie: wczytujemy rekord + ścieżkę HTML. Potem podpinamy pełny edytor bloków.
+      </p>
+
+      <label>ID
+        <input type="text" id="edit-id" readonly>
+      </label>
+
+      <label>Podgląd rekordu (JSON)
+        <textarea id="edit-json" rows="10" spellcheck="false"></textarea>
+      </label>
+
+      <div class="row">
+        <button type="button" id="copy-json">📋 Kopiuj JSON</button>
+        <button type="button" id="start-new-from">🧬 Skopiuj do trybu "Dodaj"</button>
+      </div>
+    </fieldset>
+  </section>
+
+  <script>
+    // ===== TABS =====
+    const tabs = document.querySelectorAll(".tab");
+    const panels = {
+      add: document.getElementById("panel-add"),
+      edit: document.getElementById("panel-edit"),
+    };
+
+    tabs.forEach(btn => {
+      btn.addEventListener("click", () => {
+        tabs.forEach(b => b.classList.remove("is-active"));
+        btn.classList.add("is-active");
+
+        const key = btn.dataset.tab;
+        Object.values(panels).forEach(p => p.classList.remove("is-active"));
+        panels[key].classList.add("is-active");
+
+        tabs.forEach(b => b.setAttribute("aria-selected", String(b === btn)));
+      });
+    });
+
+    // ===== EDIT: list loading =====
+    const pick = document.getElementById("task-pick");
+    const srcSel = document.getElementById("edit-source");
+    const refreshBtn = document.getElementById("refresh-list");
+    const loadBtn = document.getElementById("load-task");
+    const openBtn = document.getElementById("open-html");
+
+    const editId = document.getElementById("edit-id");
+    const editJson = document.getElementById("edit-json");
+    const copyJsonBtn = document.getElementById("copy-json");
+    const startNewBtn = document.getElementById("start-new-from");
+
+    function esc(s){
+      return String(s ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;");
+    }
+
+    async function loadTasksList(){
+      pick.innerHTML = "<option>Ładowanie…</option>";
+      const src = srcSel.value;
+      const res = await fetch(`/api/tasks_list?src=${encodeURIComponent(src)}`, { cache: "no-store" });
+      if (!res.ok) {
+        pick.innerHTML = "<option>Nie udało się pobrać listy</option>";
+        return;
+      }
+      const data = await res.json();
+
+      pick.innerHTML = data.map(t => {
+        const label = `${t.id} | ${t.zrodlo ?? ""} ${t.rok ?? ""} ${t.miesiac ?? ""} | nr: ${t.nr_zad ?? ""}`;
+        return `<option value="${esc(t.id)}">${esc(label)}</option>`;
+      }).join("");
+    }
+
+    refreshBtn.addEventListener("click", loadTasksList);
+    document.addEventListener("DOMContentLoaded", loadTasksList);
+
+    async function loadTaskById(id){
+      const src = srcSel.value;
+      const res = await fetch(`/api/task/${encodeURIComponent(id)}?src=${encodeURIComponent(src)}`, { cache: "no-store" });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok || !data.ok) {
+        alert("Nie udało się wczytać zadania.");
+        return null;
+      }
+      return data;
+    }
+
+    loadBtn.addEventListener("click", async () => {
+      const id = pick.value;
+      if (!id) return;
+      const data = await loadTaskById(id);
+      if (!data) return;
+
+      editId.value = data.record.id;
+      editJson.value = JSON.stringify(data.record, null, 2);
+      // html jest w data.html (na razie tylko do otwarcia w nowej karcie)
+    });
+
+    openBtn.addEventListener("click", async () => {
+      const id = pick.value;
+      if (!id) return;
+      const data = await loadTaskById(id);
+      if (!data) return;
+
+      const htmlRel = data.record.html; // np. ../tasks_private/ID.html
+      if (!htmlRel) { alert("Brak ścieżki HTML w rekordzie."); return; }
+
+      // zamiana ../ na /
+    const url = htmlRel.startsWith("../") ? htmlRel.slice(2) : htmlRel;
+      window.open(url, "_blank");
+    });
+
+    copyJsonBtn.addEventListener("click", async () => {
+      await navigator.clipboard.writeText(editJson.value || "");
+      alert("Skopiowano JSON do schowka.");
+    });
+
+    startNewBtn.addEventListener("click", () => {
+      alert("Tu w następnym kroku podepniemy przeniesienie danych do formularza w trybie 'Dodaj'.");
+    });
+  </script>
+</body>
+</html>
+

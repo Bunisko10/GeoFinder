@@ -269,3 +269,10 @@ Treści zadań maturalnych podlegają prawom autorskim CKE i są wykorzystywane 
 ---
 
 ## Miłego użytkowania! ❤️🫡
+
+---
+## ❤️ Dedykacja 
+
+Narzędzie to pragnę zadedykować moim „oprawczyniom geograficznym”, które przez lata maltretowały mnie kserówkami. 
+I <3 U baby! 
+Bez was by to nie powstało! Kto ma wiedzieć ten będzie wiedział.

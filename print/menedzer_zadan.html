@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <title>GeoFinder – generator arkuszy (nauczyciel) v.1.0 </title>
+  <link rel="stylesheet" href="../style.css">
+</head>
+
+<body data-mode="teacher">
+
+<h1 class="no-print">GeoFinder – generator arkusza (nauczyciel) v.1.0</h1>
+
+<!-- ================= PANEL FILTRÓW ================= -->
+<div class="no-print" id="filters">
+  
+  <div class="filter-group">
+      <button type="button" onclick="toggleAllFilters(true)">
+        Zaznacz wszystkie filtry
+      </button>
+      <button type="button" onclick="toggleAllFilters(false)">
+        Odznacz wszystkie filtry
+      </button>
+  </div>
+
+
+  <div class="filter-group">
+    <strong>Tytuł arkusza:</strong>
+    <input type="text" id="sheet-title"
+         placeholder="np. Arkusz powtórzeniowy – hydrosfera"
+         style="width:100%;">
+  </div>
+
+
+  <div class="filter-group">
+    <strong>Źródło:</strong>
+    <div id="filter-zrodlo"></div>
+  </div>
+  
+  
+  <div class="filter-group">
+    <strong>Formuła:</strong>
+    <div id="filter-formula"></div>
+  </div>
+  
+  <div class="filter-group">
+    <strong>Rok:</strong>
+    <div id="filter-rok"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Sesja:</strong>
+    <div id="filter-miesiac"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Poziom:</strong>
+    <div id="filter-poziom"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Dział:</strong>
+    <div id="filter-dzial"></div>
+  </div>
+
+  
+  <div class="filter-group">
+    <strong>Typ zadania:</strong>
+    <div id="filter-typ"></div>
+  </div>
+
+  <div class="filter-group">
+    <strong>Druk:</strong>
+    <label>
+      <input type="checkbox" id="print-solutions">
+      Drukuj z rozwiązaniami
+    </label>
+  </div>
+
+
+<div class="filter-group">
+  <strong>Sortowanie:</strong>
+  <select id="sort-mode">
+    <option value="default">Domyślne (arkusz → zadanie)</option>
+    <option value="year-desc">Rok ↓ (najnowsze)</option>
+    <option value="year-asc">Rok ↑ (najstarsze)</option>
+    <option value="dzial">Dział</option>
+    <option value="typ">Typ zadania</option>
+    <option value="shuffle">Losowo</option>
+  </select>
+</div>
+
+<div class="filter-group">
+  <strong>Czas pracy (min):</strong><br>
+  od <input type="number" id="time-min" style="width:60px;"> 
+  do <input type="number" id="time-max" style="width:60px;">
+</div>
+
+<div class="filter-group">
+  <strong>Liczba punktów:</strong><br>
+  od <input type="number" id="points-min" style="width:60px;">
+  do <input type="number" id="points-max" style="width:60px;">
+</div>
+
+<div class="filter-group">
+  <strong>Liczba zadań:</strong><br>
+  od <input type="number" id="tasks-min" style="width:60px;">
+  do <input type="number" id="tasks-max" style="width:60px;">
+</div>
+
+
+</div>
+
+
+
+<div class="no-print">
+  <button onclick="toggleAllTasks(true)">Zaznacz wszystkie zadania</button>
+  <button onclick="toggleAllTasks(false)">Odznacz wszystkie zadania</button>
+</div>
+
+
+
+
+<div class="no-print toolbar">
+  <button onclick="generate('fixed')">Generuj arkusz</button>
+  <button onclick="generate('random')">Generuj losowe zadania</button>
+  <button onclick="printQuick()">Drukuj arkusz</button>
+  <button onclick="printAr()">Drukuj pracę klasową</button>
+</div>
+
+
+
+<hr class="no-print">
+
+
+
+<div id="summary-box" class="no-print">
+  <strong>Podsumowanie arkusza:</strong>
+  <div class="sum-row">
+    <span class="sum-pill">⏱ Czas:<span id="sum-time">–</span> min</span>
+    <span class="sum-pill">🧮 Punkty:<span id="sum-points">–</span> pkt</span>
+    <span class="sum-pill">📄 Zadania:<span id="sum-tasks">–</span></span>
+  </div>
+</div>
+
+
+<h1 id="custom-title" class="sheet-title"></h1>
+
+<div id="sheet-points" class="sheet-points">
+</div>
+
+<!-- ================= TU POJAWIAJĄ SIĘ ZADANIA ================= -->
+<div id="tasks"></div>
+
+<div id="print-maps-only" class="print-only"></div>
+
+
+<script>
+/* =========================================================
+   DANE GLOBALNE
+========================================================= */
+const TASK_BY_ID = new Map();
+let CURRENT_TASKS = [];        // zadania w arkuszu (kolejność!)
+let CURRENT_SELECTION = new Set(); // zaznaczone checkboxy
+let ALL_TASKS = [];
+const USED_ATTACHMENTS = new Set();
+const USED_MAPS = new Set();
+let RENDER_MODE = "screen"; // "screen" | "print"
+
+
+const timeMin   = document.getElementById("time-min");
+const timeMax   = document.getElementById("time-max");
+const pointsMin = document.getElementById("points-min");
+const pointsMax = document.getElementById("points-max");
+const tasksMin  = document.getElementById("tasks-min");
+const tasksMax  = document.getElementById("tasks-max");
+
+/* =========================================================
+   POMOCNICZE
+========================================================= */
+function uniqueValues(tasks, field) {
+  return [...new Set(
+    tasks
+      .map(t => t[field])
+      .filter(v => v !== null && v !== undefined && v !== "")
+  )];
+}
+
+function buildCheckboxes(containerId, field, values) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+
+  values.forEach(val => {
+    const label = document.createElement("label");
+    label.style.display = "block";
+
+    const checkbox = document.createElement("input");
+    checkbox.type = "checkbox";
+    checkbox.className = "filter";
+    checkbox.dataset.field = field;
+    checkbox.value = val;
+    checkbox.checked = true;
+
+    label.appendChild(checkbox);
+    label.append(" " + val);
+
+    container.appendChild(label);
+  });
+}
+
+/*======================================================
+FUNKCJA: sortowanie
+=======================================================*/
+function sortTasks(tasks) {
+  const mode = document.getElementById("sort-mode")?.value || "default";
+
+  const copy = [...tasks]; // ⚠️ zawsze kopia
+
+  switch (mode) {
+    case "year-desc":
+      return copy.sort((a, b) => (b.rok ?? 0) - (a.rok ?? 0));
+
+    case "year-asc":
+      return copy.sort((a, b) => (a.rok ?? 0) - (b.rok ?? 0));
+
+    case "dzial":
+      return copy.sort((a, b) =>
+        String(a.dzial).localeCompare(String(b.dzial), "pl")
+      );
+
+    case "typ":
+      return copy.sort((a, b) =>
+        String(a.typ).localeCompare(String(b.typ), "pl")
+      );
+
+    case "shuffle":
+      return copy.sort(() => Math.random() - 0.5);
+
+    case "default":
+    default:
+      return sortDefaultCKE(copy);
+  }
+}
+
+function sortDefaultCKE(tasks) {
+  return tasks.sort((a, b) => {
+    // 1️⃣ arkusz (np. CKE_M23R_2025_maj)
+    const sheetA = a.id.split("_").slice(0, 4).join("_");
+    const sheetB = b.id.split("_").slice(0, 4).join("_");
+    if (sheetA !== sheetB) return sheetA.localeCompare(sheetB);
+
+    // 2️⃣ numer zadania (Z10, Z10_1, Z11_2 itd.)
+    return extractTaskNumber(a.id) - extractTaskNumber(b.id);
+  });
+}
+
+function extractTaskNumber(id) {
+  const match = id.match(/Z(\d+)(?:_(\d+))?/);
+  if (!match) return 999;
+  const main = Number(match[1]);
+  const sub = match[2] ? Number(match[2]) / 10 : 0;
+  return main + sub;
+}
+
+/*======================================================
+FUNKCJA: wstawianie attachmentów
+=======================================================*/
+async function processAttachments(wrapper, task) {
+  const placeholders = wrapper.querySelectorAll(".attachment-placeholder");
+
+  for (const ph of placeholders) {
+        console.log(
+      "ATT PLACEHOLDER",
+      ph.dataset.att,
+      "TASK",
+      task.id,
+      "→",
+      task[`${ph.dataset.att}_id`],
+      task[`${ph.dataset.att}_src`]
+    );
+
+    const which = ph.dataset.att; // att1 / att2
+    const attId   = task[`${which}_id`];
+    const attSrc  = task[`${which}_src`];
+
+    if (!attId || !attSrc) {
+      ph.remove();
+      continue;
+    }
+
+    if (USED_ATTACHMENTS.has(attSrc)) {
+      ph.remove();
+      continue;
+    }
+
+    try {
+      const res = await fetch(attSrc);
+      if (!res.ok) {
+        console.warn("Brak attachment:", attSrc);
+        ph.remove();
+        continue;
+      }
+
+      const html = await res.text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+
+      const block = document.createElement("div");
+      block.className = "shared-attachment";
+      block.innerHTML = doc.body.innerHTML;
+
+      ph.replaceWith(block);
+      USED_ATTACHMENTS.add(attSrc);
+
+    } catch (e) {
+      console.error("Błąd attachment:", attSrc, e);
+      ph.remove();
+    }
+  }
+
+}
+
+/*======================================================
+FUNKCJA: wstawianie map
+=======================================================*/
+function getMapContainer() {
+  return RENDER_MODE === "print"
+    ? document.getElementById("print-maps-only")
+    : document.getElementById("tasks");
+}
+
+
+
+async function insertMap(mapId, mapSrc) {
+  if (USED_MAPS.has(mapId)) return;
+
+  try {
+    const res = await fetch(mapSrc);
+    if (!res.ok) return;
+
+    const html = await res.text();
+    const doc = new DOMParser().parseFromString(html, "text/html");
+
+    const page = document.createElement("div");
+    page.className = "map-page-wrapper";
+    page.innerHTML = doc.body.innerHTML;
+
+    const target = getMapContainer(); // ⭐ TU ZAPADA DECYZJA
+    target.appendChild(page);
+
+    USED_MAPS.add(mapId);
+  } catch (err) {
+    console.error("Błąd mapy:", mapId, err);
+  }
+}
+
+
+async function processMapForTask(task) {
+  if (task.att1_type === "map" && task.att1_id) {
+    await insertMap(task.att1_id, task.att1_src);
+  }
+  if (task.att2_type === "map" && task.att2_id) {
+    await insertMap(task.att2_id, task.att2_src);
+  }
+}
+
+
+/* =========================================================
+   INICJALIZACJA FILTRÓW (AUTO Z JSONA)
+========================================================= */
+console.log("INIT FILTERS");
+const TASKS_URL = "../data/tasks_private.json";
+
+async function initFilters() {
+  const res = await fetch(`${TASKS_URL}?v=${Date.now()}`, { cache: "no-store" });
+  ALL_TASKS = await res.json();
+  TASK_BY_ID.clear();
+  ALL_TASKS.forEach(t => TASK_BY_ID.set(String(t.id), t));
+
+
+    buildCheckboxes("filter-zrodlo", "zrodlo", uniqueValues(ALL_TASKS, "zrodlo"));
+    buildCheckboxes("filter-formula", "formula", uniqueValues(ALL_TASKS, "formula"));
+    buildCheckboxes("filter-rok", "rok", uniqueValues(ALL_TASKS, "rok"));
+    buildCheckboxes("filter-miesiac", "miesiac", uniqueValues(ALL_TASKS, "miesiac"));
+    buildCheckboxes("filter-poziom", "poziom", uniqueValues(ALL_TASKS, "poziom"));
+    buildCheckboxes("filter-typ", "typ", uniqueValues(ALL_TASKS, "typ"));
+
+const allDzialy = [
+  ...uniqueValues(ALL_TASKS, "dzial_1"),
+  ...uniqueValues(ALL_TASKS, "dzial_2"),
+];
+
+const uniqueDzialy = [...new Set(allDzialy)];
+
+buildCheckboxes("filter-dzial", "dzial", uniqueDzialy);
+}
+
+initFilters();
+
+/* =========================================================
+   FILTRY
+========================================================= */
+
+function matches(task, filters) {
+  return Object.entries(filters).every(([field, allowed]) => {
+
+    // 🔹 SPECJALNY PRZYPADEK: DZIAŁ (dzial_1 LUB dzial_2)
+if (field === "dzial") {
+  const dzialyZadania = [task.dzial_1, task.dzial_2].filter(Boolean);
+
+  // ✅ jeśli filtr DZIAŁ jest aktywny,
+  // a zadanie nie ma żadnego działu → ODRZUĆ
+  if (dzialyZadania.length === 0) return false;
+
+  // OR: wystarczy jeden wspólny
+  return dzialyZadania.some(d =>
+    allowed.includes(String(d))
+  );
+}
+
+    // 🔹 NORMALNE POLA
+    if (
+      task[field] === undefined ||
+      task[field] === null ||
+      task[field] === ""
+    ) {
+      return true;
+    }
+
+    return allowed.includes(String(task[field]));
+  });
+}
+
+function getActiveFilters() {
+  const filters = {};
+
+  document.querySelectorAll(".filter:checked").forEach(el => {
+    const field = el.dataset.field;
+    filters[field] ??= [];
+    filters[field].push(String(el.value));
+  });
+
+  return filters;
+}
+
+function toggleAllFilters(state) {
+  document.querySelectorAll(".filter").forEach(cb => {
+    cb.checked = state;
+  });
+}
+
+function toggleAllTasks(state) {
+  document.querySelectorAll(".task-select").forEach(cb => {
+    cb.checked = state;
+
+    const id = cb.dataset.taskId;
+    if (!id) return;
+
+    if (state) CURRENT_SELECTION.add(id);
+    else CURRENT_SELECTION.delete(id);
+  });
+  
+  updateSummaryFromSelection();
+
+}
+/* =========================================================
+   placeholdery
+========================================================= */
+
+
+function processMeta(wrapper, task) {
+  wrapper.querySelectorAll(".meta-placeholder").forEach(ph => {
+    const type = ph.dataset.meta;
+
+    switch (type) {
+      case "zrodlo":
+        ph.textContent = task.zrodlo ?? "";
+        break;
+
+      case "l_pkt":
+        ph.textContent = task.l_pkt ? `${task.l_pkt} pkt` : "";
+        break;
+
+      case "kompetencje":
+        const kompetencje = [
+          task.kompetencja_1,
+          task.kompetencja_2
+        ].filter(Boolean);
+
+        ph.textContent = kompetencje.join("; ");
+        break;
+    }
+  });
+}
+
+/* =========================================================
+zliczanie pkt
+========================================================= */
+
+function calculateSelectedPoints() {
+  let sum = 0;
+
+  document.querySelectorAll(".task").forEach(task => {
+    const cb = task.querySelector(".task-select");
+    if (!cb || !cb.checked) return;
+
+    const pktEl = task.querySelector('.meta-placeholder[data-meta="l_pkt"]');
+    if (!pktEl) return;
+
+    const num = parseFloat(
+      pktEl.textContent.replace(",", ".").replace(/[^\d.]/g, "")
+    );
+
+    if (!isNaN(num)) sum += num;
+  });
+
+  return sum;
+}
+
+function updateSummaryFromSelection() {
+  let taskCount  = 0;
+  let pointsSum  = 0;
+  let timeMinSum = 0;
+  let timeMaxSum = 0;
+
+  // liczymy tylko w obrębie aktualnie wygenerowanego arkusza
+  for (const t of CURRENT_TASKS) {
+    if (!CURRENT_SELECTION.has(String(t.id))) continue;
+
+    taskCount++;
+
+    const p = Number(t.l_pkt) || 0;
+    const tMin = Number(t.czas_min) || 0;
+    const tMax = Number(t.czas_max) || tMin;
+
+    pointsSum  += p;
+    timeMinSum += tMin;
+    timeMaxSum += tMax;
+  }
+
+  updateSummary(taskCount, pointsSum, timeMinSum, timeMaxSum);
+}
+
+
+/* =========================================================
+wybór zadań wg kryteriów
+========================================================= */
+
+function selectTasksWithConstraints(tasks, constraints) {
+  const {
+    minTime,
+    maxTime
+  } = constraints;
+
+  let selected = [];
+  let timeSumMin = 0;
+  let timeSumMax = 0;
+
+  for (const task of tasks) {
+    const tMin = Number(task.czas_min) || 0;
+    const tMax = Number(task.czas_max) || tMin;
+
+    // sprawdzamy, czy dodanie zadania NIE rozwali limitu
+    if (timeSumMax + tMin > maxTime) {
+      continue;
+    }
+
+    selected.push(task);
+    timeSumMin += tMin;
+    timeSumMax += tMax;
+
+    // jeżeli już jesteśmy w przedziale → STOP
+    if (
+      (minTime > 0 || maxTime < Infinity) &&
+      timeSumMin >= minTime &&
+      timeSumMax <= maxTime
+    ) {
+      break;
+    }
+  }
+
+  return selected;
+}
+
+function rand(min, max) {
+  if (max === Infinity) return Infinity;
+  if (min === max) return min;
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
+function moveMapsForPrint() {
+  const printBox = document.getElementById("print-maps-only");
+  if (!printBox) return;
+
+  printBox.innerHTML = "";
+
+  document.querySelectorAll(".map-page-wrapper[data-map-type='cke']")
+    .forEach(map => {
+      printBox.appendChild(map.cloneNode(true));
+    });
+}
+
+
+/*-----------------------------------------
+Renderowanie zadań
+-----------------------------------------*/
+
+async function renderTask(task) {
+  
+  const container = document.getElementById("tasks");
+
+  await processMapForTask(task); // ⬅️ MAPA NAJPIERW
+
+  const res = await fetch(task.html);
+  if (!res.ok) return;
+
+  const html = await res.text();
+  const doc = new DOMParser().parseFromString(html, "text/html");
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "task";
+  wrapper.innerHTML = doc.body.innerHTML;
+  wrapper.dataset.taskId = task.id;   // <-- DODAJ
+
+
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.className = "task-select no-print";
+  cb.dataset.taskId = task.id;
+  cb.checked = CURRENT_SELECTION.has(String(task.id));
+  wrapper.prepend(cb);
+
+  await processAttachments(wrapper, task);
+  processMeta(wrapper, task);
+
+  container.appendChild(wrapper);
+}
+
+// ✅ JEDNO miejsce aktualizacji selection – działa zawsze
+document.getElementById("tasks").addEventListener("change", (e) => {
+  const cb = e.target;
+  if (!cb.classList.contains("task-select")) return;
+
+  const id = cb.dataset.taskId;
+  if (!id) return;
+
+  if (cb.checked) CURRENT_SELECTION.add(id);
+  else CURRENT_SELECTION.delete(id);
+  
+  updateSummaryFromSelection();
+
+});
+
+document.addEventListener("input", (e) => {
+  if (e.target && e.target.id === "sheet-title") {
+    updateSheetTitle();
+  }
+});
+
+function syncSelectionFromDOM() {
+  const ids = new Set();
+  document.querySelectorAll(".task-select").forEach(cb => {
+    if (cb.checked) ids.add(cb.dataset.taskId);
+  });
+  CURRENT_SELECTION = ids;
+}
+
+function renumberTasksForPrint() {
+  let i = 1;
+  document.querySelectorAll(".task:not(.skip-print)").forEach(task => {
+    const h1 = task.querySelector("h1");
+    if (h1) {
+      h1.textContent = `Zadanie ${i}`;
+      i++;
+    }
+  });
+}
+
+/* --------------------------------
+Update dla podsuowania
+---------------------------------------------*/
+
+function updateSummary(taskCount, pointsSum, timeMinSum, timeMaxSum) {
+  const timeEl   = document.getElementById("sum-time");
+  const pointsEl = document.getElementById("sum-points");
+  const tasksEl  = document.getElementById("sum-tasks");
+
+  if (timeEl) {
+    timeEl.textContent =
+      timeMinSum === timeMaxSum
+        ? `${timeMinSum}`
+        : `${timeMinSum}–${timeMaxSum}`;
+  }
+
+  if (pointsEl) pointsEl.textContent = pointsSum;
+  if (tasksEl)  tasksEl.textContent  = taskCount;
+}
+
+
+/* --------------------------------
+Czy są aktywne filtry
+---------------------------------------------*/
+function hasActiveFilters() {
+  const allFilters = document.querySelectorAll(".filter");
+  const checked    = document.querySelectorAll(".filter:checked");
+
+  return checked.length !== allFilters.length;
+}
+
+/* --------------------------------
+Czy są aktywne filtry
+---------------------------------------------*/
+function shuffleArray(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* --------------------------------
+puste filtry
+---------------------------------------------*/
+function isEmpty(val) {
+  return val === null || val === undefined || val === "";
+}
+
+//moZ4 b4rzie dzialac losowanie
+
+
+function readRange(minEl, maxEl) {
+  const minRaw = minEl.value.trim();
+  const maxRaw = maxEl.value.trim();
+
+  const empty = (minRaw === "" && maxRaw === "");
+
+  // NIC NIE WPISANE
+  if (empty) {
+    return { min: 0, max: Infinity, random: true, empty: true };
+  }
+
+  // MIN i MAX wpisane → losuj
+  if (minRaw !== "" && maxRaw !== "") {
+    const min = Number(minRaw);
+    const max = Number(maxRaw);
+
+    const a = Number.isFinite(min) ? min : 0;
+    const b = Number.isFinite(max) ? max : a;
+
+    return {
+      min: Math.min(a, b),
+      max: Math.max(a, b),
+      random: true,
+      empty: false
+    };
+  }
+
+  // Tylko jedna granica → bez losowania
+  const min = (minRaw === "") ? 0 : Number(minRaw);
+  const max = (maxRaw === "") ? Infinity : Number(maxRaw);
+
+  return {
+    min: Number.isFinite(min) ? min : 0,
+    max: Number.isFinite(max) ? max : Infinity,
+    random: false,
+    empty: false
+  };
+}
+
+
+
+function updateSheetTitle() {
+  const input = document.getElementById("sheet-title");
+  const out   = document.getElementById("custom-title");
+
+  if (!input || !out) return;
+
+  const val = input.value.trim();
+  out.textContent = val;
+  out.style.display = val ? "block" : "none";
+}
+
+/* --------------------------------
+Generator
+---------------------------------------------*/
+
+
+function updatePrintMode() {
+  const checkbox = document.getElementById("print-solutions");
+  if (!checkbox) return;
+
+  if (checkbox.checked) {
+    document.body.classList.add("print-solutions");
+    document.querySelectorAll("details.solution").forEach(d => d.open = true);
+  } else {
+    document.body.classList.remove("print-solutions");
+    document.querySelectorAll("details.solution").forEach(d => d.open = false);
+  }
+}
+
+document.addEventListener("change", e => {
+  if (e.target.id === "print-solutions") {
+    updatePrintMode();
+  }
+});
+
+window.addEventListener("beforeprint", updatePrintMode);
+
+async function generate(mode = "fixed") {
+  const isRandom = mode === "random";
+
+  // reset renderu
+  document.getElementById("tasks").innerHTML = "";
+  if (RENDER_MODE === "print") {
+    document.getElementById("print-maps-only").innerHTML = "";
+  }
+  USED_ATTACHMENTS.clear();
+  USED_MAPS.clear();
+
+  // zakresy
+  const timeRange   = readRange(timeMin, timeMax);
+  const pointsRange = readRange(pointsMin, pointsMax);
+  const tasksRange  = readRange(tasksMin, tasksMax);
+
+  // ✅ DOMYŚLNE zachowanie: jeśli RANDOM i WSZYSTKO puste → losuj sensowną liczbę zadań
+  // (to naprawia “nic nie wpisane i nie losuje jak trzeba” / “bierze całą bazę”)
+  const DEFAULT_RANDOM_TASKS_MIN = 6;
+  const DEFAULT_RANDOM_TASKS_MAX = 12;
+
+  // cele
+  let targetTasks;
+  let targetPoints;
+  let targetTime;
+
+  if (isRandom && tasksRange.empty && pointsRange.empty && timeRange.empty) {
+    targetTasks  = rand(DEFAULT_RANDOM_TASKS_MIN, DEFAULT_RANDOM_TASKS_MAX);
+    targetPoints = Infinity;
+    targetTime   = Infinity;
+  } else {
+    // zadania
+    if (isRandom && tasksRange.random && !tasksRange.empty) {
+      targetTasks = rand(tasksRange.min, tasksRange.max);
+    } else {
+      // fixed albo jedna granica → traktuj jako limit max
+      targetTasks = tasksRange.max;
+    }
+
+    // punkty
+    if (isRandom && pointsRange.random && !pointsRange.empty) {
+      targetPoints = rand(pointsRange.min, pointsRange.max);
+    } else {
+      targetPoints = pointsRange.max;
+    }
+
+    // czas
+    if (isRandom && timeRange.random && !timeRange.empty) {
+      targetTime = rand(timeRange.min, timeRange.max);
+    } else {
+      targetTime = timeRange.max;
+    }
+  }
+
+  // pula
+  let pool = (isRandom && !hasActiveFilters())
+    ? [...ALL_TASKS]
+    : ALL_TASKS.filter(t => matches(t, getActiveFilters()));
+
+  if (!pool.length) return;
+
+  // porządek puli
+  if (isRandom) pool = shuffleArray(pool);
+  else pool = sortTasks(pool);
+
+  // wybór
+  const picked = [];
+  let taskCount  = 0;
+  let pointsSum  = 0;
+  let timeMinSum = 0;
+  let timeMaxSum = 0;
+
+  for (const task of pool) {
+    // ✅ NAJWAŻNIEJSZY HAMULEC – liczba zadań
+    if (taskCount >= targetTasks) break;
+
+    const p    = Number(task.l_pkt) || 0;
+    const tMin = Number(task.czas_min) || 0;
+    const tMax = Number(task.czas_max) || tMin;
+
+    // limity (Infinity nie przeszkadza)
+    if (pointsSum + p > targetPoints) continue;
+    if (timeMinSum + tMin > targetTime) continue;
+
+    picked.push(task);
+
+    taskCount++;
+    pointsSum  += p;
+    timeMinSum += tMin;
+    timeMaxSum += tMax;
+  }
+
+  // finalna kolejność w arkuszu
+  const sortedPicked = sortTasks(picked);
+
+  // stan do druku/checkboxów
+  CURRENT_TASKS = [...sortedPicked];
+  CURRENT_SELECTION = new Set(sortedPicked.map(t => String(t.id)));
+
+  // render
+  for (const task of sortedPicked) {
+    await renderTask(task);
+  }
+
+  // ✅ poprawione podsumowanie (wcześniej dawałaś timeMinSum dwa razy)
+  updateSheetTitle();
+  updateSummaryFromSelection();
+  updatePrintMode();
+}
+
+
+
+function applyPrintSelection() {
+  document.querySelectorAll(".task").forEach(task => {
+    const cb = task.querySelector(".task-select");
+    if (cb && !cb.checked) {
+      task.classList.add("skip-print");
+    } else {
+      task.classList.remove("skip-print");
+    }
+  });
+}
+
+async function printAr() {
+  if (!CURRENT_TASKS.length) {
+    alert("Najpierw wygeneruj arkusz.");
+    return;
+  }
+  updateSheetTitle();       // żeby tytuł był zawsze aktualny
+  syncSelectionFromDOM();   // żeby brało ręczne odznaczenia
+
+  document.body.classList.add("print-classwork");  // <<< TO
+
+  RENDER_MODE = "print";
+
+  document.getElementById("tasks").innerHTML = "";
+  document.getElementById("print-maps-only").innerHTML = "";
+  USED_ATTACHMENTS.clear();
+  USED_MAPS.clear();
+
+  // 🔹 renderujemy TYLKO zaznaczone
+  for (const task of CURRENT_TASKS) {
+  if (CURRENT_SELECTION.has(String(task.id))) {
+      await renderTask(task);
+    }
+  }
+
+  renumberTasksForPrint();
+
+  const total = calculateSelectedPoints();
+  document.getElementById("sheet-points").textContent =
+    `Łącznie:_____________ / ${total} pkt`;
+
+  setTimeout(() => window.print(), 150);
+
+  RENDER_MODE = "screen";
+  
+  document.body.classList.remove("print-classwork"); // <<< I TO
+
+}
+async function printQuick() {
+  if (!CURRENT_TASKS.length) {
+    alert("Najpierw wygeneruj arkusz.");
+    return;
+  }
+
+  updateSheetTitle();
+  syncSelectionFromDOM();
+
+  // UWAGA: tu NIE dodajemy print-classwork
+  RENDER_MODE = "print";
+
+  document.getElementById("tasks").innerHTML = "";
+  document.getElementById("print-maps-only").innerHTML = "";
+  USED_ATTACHMENTS.clear();
+  USED_MAPS.clear();
+
+  for (const task of CURRENT_TASKS) {
+    if (CURRENT_SELECTION.has(String(task.id))) {
+      await renderTask(task);
+    }
+  }
+
+  // brak renumberTasksForPrint() -> zostają oryginalne nagłówki
+
+  const total = calculateSelectedPoints();
+  document.getElementById("sheet-points").textContent =
+    `Łącznie:_____________ / ${total} pkt`;
+
+  setTimeout(() => window.print(), 150);
+
+  RENDER_MODE = "screen";
+}
+
+
+
+</script>
+</body>
+</html>

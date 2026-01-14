@@ -23,13 +23,6 @@
   </div>
 
 
-  <div class="filter-group">
-    <strong>Tytuł arkusza:</strong>
-    <input type="text" id="sheet-title"
-         placeholder="np. Arkusz powtórzeniowy – hydrosfera"
-         style="width:100%;">
-  </div>
-
 
   <div class="filter-group">
     <strong>Źródło:</strong>
@@ -77,6 +70,13 @@
       <input type="checkbox" id="print-solutions">
       Drukuj z rozwiązaniami
     </label>
+  </div>
+
+    <div class="filter-group">
+    <strong>Tytuł arkusza:</strong>
+    <input type="text" id="sheet-title"
+         placeholder="np. Arkusz powtórzeniowy – hydrosfera"
+         style="width:100%;">
   </div>
 
 
@@ -127,7 +127,6 @@
   <button onclick="generate('fixed')">Generuj arkusz</button>
   <button onclick="generate('random')">Generuj losowe zadania</button>
   <button onclick="printQuick()">Drukuj arkusz</button>
-  <button onclick="printAr()">Drukuj pracę klasową</button>
 </div>
 
 
