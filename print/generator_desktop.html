@@ -180,7 +180,7 @@ function sortTasks(tasks) {
       return copy.sort((a, b) => (a.rok ?? 0) - (b.rok ?? 0));
     case "dzial":
       return copy.sort((a, b) =>
-        departments(a).join("; ").localeCompare(departments(b).join("; "), "pl")
+        compareDepartments([...departments(a)].sort(compareDepartments)[0], [...departments(b)].sort(compareDepartments)[0])
       );
     case "typ":
       return copy.sort((a, b) =>
@@ -213,6 +213,14 @@ function extractTaskNumber(id) {
 /*======================================================
 FUNKCJA: wstawianie attachmentów
 =======================================================*/
+// Zgodność ze strukturą folderów tej wersji GeoFinder.
+function projectPath(value) {
+ return String(value??'').replace(/\\/g,'/').replace(/(^|\/)(tasks_public|attachment_public|img_public)(?=\/)/g,(_,prefix,folder)=>prefix+folder.replace(/_public$/,''));
+}
+function normalizeAssetHTML(html) {
+ return String(html).replace(/(\b(?:src|href|poster)\s*=\s*)(["'])(.*?)\2/gi,(_,start,quote,path)=>start+quote+projectPath(path)+quote);
+}
+
 async function processAttachments(wrapper, task) {
   const placeholders = wrapper.querySelectorAll(".attachment-placeholder");
   for (const ph of placeholders) {
@@ -237,14 +245,14 @@ async function processAttachments(wrapper, task) {
       continue;
     }
     try {
-      const res = await fetch(attSrc);
+      const res = await fetch(projectPath(attSrc));
       if (!res.ok) {
         console.warn("Brak attachment:", attSrc);
         ph.remove();
         continue;
       }
       const html = await res.text();
-      const doc = new DOMParser().parseFromString(html, "text/html");
+      const doc = new DOMParser().parseFromString(normalizeAssetHTML(html), "text/html");
       const block = document.createElement("div");
       block.className = "shared-attachment";
       block.innerHTML = doc.body.innerHTML;
@@ -267,10 +275,10 @@ function getMapContainer() {
 async function insertMap(mapId, mapSrc) {
   if (USED_MAPS.has(mapId)) return;
   try {
-    const res = await fetch(mapSrc);
+    const res = await fetch(projectPath(mapSrc));
     if (!res.ok) return;
     const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
+    const doc = new DOMParser().parseFromString(normalizeAssetHTML(html), "text/html");
     const page = document.createElement("div");
     page.className = "map-page-wrapper";
     page.innerHTML = doc.body.innerHTML;
@@ -293,6 +301,35 @@ async function processMapForTask(task) {
    INICJALIZACJA FILTRÓW (AUTO Z JSONA)
 ========================================================= */
 console.log("INIT FILTERS");
+const BASIC_DEPARTMENTS=["Źródła informacji geograficznej, technologie geoinformacyjne oraz metody prezentacji danych przestrzennych", "Ziemia we Wszechświecie", "Atmosfera", "Hydrosfera", "Litosfera", "Pedosfera i biosfera", "Podział polityczny i zróżnicowanie poziomu rozwoju społeczno-gospodarczego świata", "Przemiany struktur demograficznych i społecznych oraz procesy osadnicze", "Uwarunkowania rozwoju gospodarki światowej", "Rolnictwo, leśnictwo i rybactwo", "Przemysł", "Usługi", "Człowiek a środowisko geograficzne – konflikty interesów", "Regionalne zróżnicowanie środowiska przyrodniczego Polski", "Społeczeństwo i gospodarka Polski", "Morze Bałtyckie i gospodarka morska Polski"];
+const EXTENDED_DEPARTMENTS=["Metody badań geograficznych i technologie geoinformacyjne", "Obserwacje astronomiczne i współczesne badania Wszechświata", "Dynamika procesów atmosferycznych", "Dynamika procesów hydrologicznych", "Dynamika procesów geologicznych i geomorfologicznych", "Gleby", "Współpraca i konflikty", "Zróżnicowanie struktur społecznych i procesów urbanizacyjnych", "Struktura gospodarki i tendencje rozwoju gospodarczego", "Zróżnicowanie gospodarki rolnej", "Przemiany sektora przemysłowego i budownictwa", "Rola tradycyjnych i nowoczesnych usług w rozwoju społeczno-gospodarczym", "Związki między elementami środowiska przyrodniczego na wybranych obszarach Polski", "Zróżnicowanie krajobrazowe Polski", "Zróżnicowanie społeczno-kulturowe Polski", "Elementy przestrzeni geograficznej i relacje między nimi we własnym regionie – badania i obserwacje terenowe", "Strefowość środowiska przyrodniczego na Ziemi", "Problemy środowiskowe współczesnego świata", "Uwarunkowania przyrodnicze gospodarczej działalności człowieka na przykładzie wybranych obszarów", "Problemy polityczne współczesnego świata", "Wybrane problemy społeczne współczesnego świata", "Zróżnicowanie jakości życia człowieka w wybranych regionach i krajach świata", "Problemy gospodarcze współczesnego świata"];
+// Kolejność z podstawaprogramowa.pl/Liceum-technikum/Geografia.
+function departmentKey(value) {
+ return String(value??'').normalize('NFC').toLocaleLowerCase('pl')
+ .replace(/^\s*(?:[ivxlcdm]+|\d+)\s*[.)]\s*/i,'')
+ .replace(/[–—-]/g,' ').replace(/\s+/g,' ').trim();
+}
+const DEPARTMENT_RANK=new Map([...BASIC_DEPARTMENTS,...EXTENDED_DEPARTMENTS].map((name,i)=>[departmentKey(name),i]));
+function departmentRank(name) {return DEPARTMENT_RANK.get(departmentKey(name))??Infinity;}
+function compareDepartments(a,b) {
+ const ra=departmentRank(a),rb=departmentRank(b);
+ return (ra===rb?0:ra<rb?-1:1)||String(a).localeCompare(String(b),'pl',{numeric:true});
+}
+function buildDepartmentList(values) {
+ const container=document.getElementById('filter-dzial');
+ buildCheckboxes('filter-dzial','dzial',[...new Set(values)].sort(compareDepartments));
+ let previous='';
+ for(const label of [...container.children]) {
+ const rank=departmentRank(label.querySelector('input').value);
+ const group=rank<BASIC_DEPARTMENTS.length?'Zakres podstawowy':Number.isFinite(rank)?'Zakres rozszerzony':'Pozostałe działy z bazy';
+ label.dataset.departmentGroup=group;
+ if(group!==previous) {
+ const title=document.createElement('h4');title.textContent=group;title.style.cssText='margin:12px 0 6px;font-size:13px';
+ title.dataset.departmentHeading=group;container.insertBefore(title,label);previous=group;
+ }
+ }
+}
+
 function departments(t) {
  const values=[t.dzial_1,t.dzial_2,t.dzial];
  return [...new Set(values.flatMap(v=>Array.isArray(v)?v:String(v??'').split(';')).map(v=>String(v).trim()).filter(Boolean))];
@@ -309,6 +346,7 @@ function setDepartments(state) {document.querySelectorAll('#filter-dzial .filter
 document.getElementById('department-search').addEventListener('input',e=>{
  const q=e.target.value.toLocaleLowerCase('pl');
  document.querySelectorAll('#filter-dzial label').forEach(l=>{l.style.setProperty('display',l.textContent.toLocaleLowerCase('pl').includes(q)?'flex':'none','important');});
+ document.querySelectorAll('[data-department-heading]').forEach(h=>{h.hidden=![...document.querySelectorAll('#filter-dzial label')].some(l=>l.dataset.departmentGroup===h.dataset.departmentHeading&&l.style.display!=='none');});
 });
 document.getElementById('filter-dzial').addEventListener('change',updateDepartments);
 async function initFilters() {
@@ -321,7 +359,8 @@ async function initFilters() {
  TASK_BY_ID.clear();ALL_TASKS.forEach(t=>TASK_BY_ID.set(String(t.id),t));
  for(const field of FILTER_FIELDS) {
  const values=field==='dzial'?[...new Set(ALL_TASKS.flatMap(departments))]:uniqueValues(ALL_TASKS,field).map(String);
- buildCheckboxes('filter-'+field,field,[...new Set(values)].sort((a,b)=>a.localeCompare(b,'pl',{numeric:true})));
+ if(field==='dzial') buildDepartmentList(values);
+ else buildCheckboxes('filter-'+field,field,[...new Set(values)].sort((a,b)=>a.localeCompare(b,'pl',{numeric:true})));
  }
  updateDepartments();status(`Wczytano ${ALL_TASKS.length} zadań.`);
 }
@@ -467,10 +506,10 @@ Renderowanie zadań
 async function renderTask(task) {
   const container = document.getElementById("tasks");
   await processMapForTask(task); // ⬅️ MAPA NAJPIERW
-  const res = await fetch(task.html);
+  const res = await fetch(projectPath(task.html));
   if (!res.ok) throw new Error(`Brak HTML: ${task.html} (HTTP ${res.status})`);
   const html = await res.text();
-  const doc = new DOMParser().parseFromString(html, "text/html");
+  const doc = new DOMParser().parseFromString(normalizeAssetHTML(html), "text/html");
   const wrapper = document.createElement("div");
   wrapper.className = "task";
   wrapper.innerHTML = doc.body.innerHTML;

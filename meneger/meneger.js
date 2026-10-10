@@ -1,889 +1,1617 @@
 // =====================
-// GEOFINDER – MENEDŻER
-// meneger.js (clean)
+// GEOFINDER — MENEDŻER
+// meneger.js
 // =====================
+//
+// Przy ładowaniu zadania do edycji wywołaj:
+// GeoFinderManager.setLoadedId(idZadania);
+//
+// Przy rozpoczęciu nowego zadania:
+// GeoFinderManager.setLoadedId(null);
 
-// ---------- DOM ----------
-const blocks = document.getElementById("blocks");
+(() => {
+  "use strict";
 
-const autoTitleEl = document.getElementById("auto-title");
-const saveBtn = document.getElementById("save-task");
+  // Chroni przed ponownym uruchomieniem tego samego skryptu.
+  if (window.__geoFinderManagerInitialized) return;
+  window.__geoFinderManagerInitialized = true;
+  // =====================
+  // HELPERS
+  // =====================
 
-const att1Scope = document.getElementById("att1_scope");
-const att1Box   = document.getElementById("att1_scope_box");
-const att2Scope = document.getElementById("att2_scope");
-const att2Box   = document.getElementById("att2_scope_box");
+  const $ = (id) => document.getElementById(id);
 
-// ---------- HELPERS: tekst ----------
-function cap(s){ return s ? s[0].toUpperCase() + s.slice(1) : ""; }
-function normVal(v){
-  if (v === null || v === undefined) return "";
-  const s = String(v).trim();
-  return (s === "null" || s === "0000") ? "" : s;
-}
-function escapeHtml(str) {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
-
-// ---------- AUTOTYTUŁ ----------
-function buildAutoTitle(){
-  const srcKey  = normVal(document.getElementById("zrodlo_select")?.value) || "INNE";
-  const srcText = (document.getElementById("zrodlo_other")?.value || "").trim()
-    || (document.getElementById("zrodlo_select")?.selectedOptions?.[0]?.textContent || "").trim();
-
-  const formula = normVal(document.getElementById("formula")?.value);
-  const poziom  = normVal(document.getElementById("poziom")?.value);
-  const rok     = normVal(document.getElementById("rok")?.value);
-  const miesiac = normVal(document.getElementById("miesiac")?.value);
-  const nrZad   = normVal(document.getElementById("nr_zad")?.value);
-
-const dz1 = normVal(document.getElementById("dzial_1")?.value);
-const dz2 = normVal(document.getElementById("dzial_2")?.value);
-const dzial = [dz1, dz2].filter(Boolean).join("; ");
-
-  const zag     = normVal(document.getElementById("zagadnienie")?.value);
-  const typ     = normVal(document.getElementById("typ")?.value);
-
-  // CKE
-  if (srcKey.startsWith("CKE_M")) {
-    const formulaTxt = formula ? `Formuła ${formula}` : "brak formuły";
-    const parts = [
-      "Zadanie",
-      (miesiac || rok) ? `Matura ${cap(miesiac)} ${rok}`.trim() : null,
-      poziom ? `Poziom ${poziom}` : null,
-      `(${formulaTxt})`,
-      nrZad ? `– Zadanie ${nrZad}` : null
-    ].filter(Boolean);
-
-    return parts.join(", ").replace(", –", " –");
+  function value(id) {
+    return $(id)?.value ?? "";
   }
 
-if (srcKey.startsWith("CKE_I")) {
-    const formulaTxt = formula ? `Formuła ${formula}` : "brak formuły";
-    const parts = [
-      "Zadanie",
-      (miesiac || rok) ? `Informator CKE ${cap(miesiac)} ${rok}`.trim() : null,
-      poziom ? `Poziom ${poziom}` : null,
-      `(${formulaTxt})`,
-      nrZad ? `– Zadanie ${nrZad}` : null
-    ].filter(Boolean);
-
-    return parts.join(", ").replace(", –", " –");
-  }
-  
-
-
-const isTrial = ["CKE_P", "NER_M", "OPE_M"].some(p => srcKey.startsWith(p));
-
-if (isTrial) {
-  const formulaTxt = formula ? `Formuła ${formula}` : "brak formuły";
-
-  // marka próbnej matury (ładna etykieta)
-  let brand = "";
-  if (srcKey.startsWith("CKE_P")) brand = "CKE";
-  else if (srcKey.startsWith("NER_M")) brand = "Nowa Era";
-  else if (srcKey.startsWith("OPE_M")) brand = "Operon";
-
-  const parts = [
-    "Zadanie",
-    (miesiac || rok) ? `Matura próbna ${brand} ${cap(miesiac)} ${rok}`.trim() : `Matura próbna ${brand}`.trim(),
-    poziom ? `Poziom ${poziom}` : null,
-    `(${formulaTxt})`,
-    nrZad ? `– Zadanie ${nrZad}` : null
-  ].filter(Boolean);
-
-  return parts.join(", ").replace(", –", " –");
-}
-
-
-
-  // INNE
-  const parts = [
-    "Zadanie",
-    srcText ? ` ${srcText}` : null,
-    dzial || null,
-    zag ? `– ${zag}` : null,
-    typ ? `(${typ})` : null,
-    nrZad ? `– Zadanie ${nrZad}` : null,
-  ].filter(Boolean);
-
-  return parts.join(" ").replace(/\s+/g, " ").trim();
-}
-
-function updateAutoTitle(){
-  if (!autoTitleEl) return;
-  if (autoTitleEl.dataset.auto !== "true") return;
-  autoTitleEl.textContent = buildAutoTitle();
-}
-
-// ---------- CLEAN PASTE (czysty tekst) ----------
-document.addEventListener("paste", (e) => {
-  const target = e.target;
-  if (!target.closest("[contenteditable='true']")) return;
-
-  e.preventDefault();
-  const text = (e.clipboardData || window.clipboardData).getData("text/plain");
-  document.execCommand("insertText", false, text);
-});
-
-// ---------- (opcjonalnie) czyszczenie span/style po input ----------
-document.addEventListener("input", (e) => {
-  const el = e.target;
-  if (!el.closest("[contenteditable='true']")) return;
-
-  el.querySelectorAll("[style], font, span").forEach(n => {
-    n.replaceWith(n.textContent);
-  });
-});
-
-// =====================
-// SUGGESTIONS (Google vibe)
-// =====================
-let SUGG = { dzialy: [], zagadnienia: [], kompetencje: [] };
-
-function fillDatalist(id, arr) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.innerHTML = (arr || []).map(v => `<option value="${escapeHtml(v)}"></option>`).join("");
-}
-
-async function loadMetaSuggestions() {
-  const res = await fetch("/api/meta_suggestions", { cache: "no-store" });
-  if (!res.ok) return;
-
-  const data = await res.json();
-
-  SUGG.dzialy = data.dzialy || [];
-  SUGG.zagadnienia = data.zagadnienia || [];
-  SUGG.kompetencje = data.kompetencje || [];
-
-  fillDatalist("dzial_list", SUGG.dzialy);
-  fillDatalist("zagadnienie_list", SUGG.zagadnienia);
-  fillDatalist("kompetencje_list", SUGG.kompetencje);
-}
-
-function keyify(s){
-  return String(s || "").trim().replace(/\s+/g, " ").toLowerCase();
-}
-function canonicalizeSingle(value, list){
-  const vKey = keyify(value);
-  if (!vKey) return value;
-
-  const map = new Map((list || []).map(x => [keyify(x), x]));
-  return map.get(vKey) || String(value).trim().replace(/\s+/g, " ");
-}
-function canonicalizeMulti(value, list){
-  const parts = String(value || "")
-    .split(/[;,]/)
-    .map(s => s.trim())
-    .filter(Boolean);
-
-  const canon = parts.map(p => canonicalizeSingle(p, list));
-  return canon.join("; ");
-}
-
-// =====================
-
-function blockOpis(){
-  return `
-  <div class="block" data-block="opis">
-
-    <p contenteditable="true">[Wprowadzenie – kliknij i wpisz]</p>
-
-   <div class="block-tools editor-only" contenteditable="false">
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-function blockCalc(){
-  return `
-  <div class="block" data-block="calc">
-    <p><strong>Obliczenia:</strong></p>
-
-    <table class="calc-grid" data-rows="8" data-cols="30">
-      ${calcGridRows(8, 30)}
-    </table>
-
-    <div class="block-tools editor-only" contenteditable="false">
-      <button type="button" data-action="calc-add-row">+ wiersz</button>
-      <button type="button" data-action="calc-del-row">- wiersz</button>
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-function calcGridRows(rows, cols){
-  let html = "";
-  for (let r = 0; r < rows; r++){
-    html += "<tr>";
-    for (let c = 0; c < cols; c++){
-      html += `<td>&nbsp;</td>`;
-    }
-    html += "</tr>";
-  }
-  return html;
-}
-
-
-function blockPolecenie(){
-  return `
-  <div class="block" data-block="polecenie">
-    <p contenteditable="true"><strong>[Polecenie – kliknij i wpisz]</strong></p>
-
-    <div class="block-tools editor-only" contenteditable="false">
-
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-
-function blockLines(){
-  return `
-  <div class="block" data-block="lines">
-    <div class="answer-space">
-      <div class="line"></div>
-      <div class="line"></div>
-    </div>
-
-<div class="block-tools editor-only" contenteditable="false">
-
-      <button type="button" data-action="add-line">+ linia</button>
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-
-
-
-function blockABCD(){
-  return `
-  <div class="block" data-block="abcd">
-
-    <div class="abcd">
-      <p contenteditable="true"><strong>A.</strong> …</p>
-      <p contenteditable="true"><strong>B.</strong> …</p>
-      <p contenteditable="true"><strong>C.</strong> …</p>
-      <p contenteditable="true"><strong>D.</strong> …</p>
-    </div>
-
-<div class="block-tools editor-only" contenteditable="false">
-
-      <button type="button" data-action="add-answer">+ odpowiedź</button>
-      <button type="button" data-action="del-answer">- odpowiedź</button>
-
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-
-function blockLuki(){
-  return `
-  <div class="block" data-block="luki">
-    <p class="gap-line">
-      <span class="gap-unit">
-        <span class="gap-text" contenteditable="true">[Zdanie]</span>
-        <i class="gap-options" contenteditable="true">(opcja1 / opcja2)</i>
-        <span class="inline-answer"></span>
-      </span>
-    </p>
-
-<div class="block-tools editor-only" contenteditable="false">
-
-      <button type="button" data-action="add-gap">+ luka</button>
-      <button type="button" data-action="del-gap">- luka</button>
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-
-
-function blockList(){
-  return `
-  <div class="block" data-block="list">
-    <ol class="answer-list">
-      <li><div class="line"></div></li>
-      <li><div class="line"></div></li>
-      <li><div class="line"></div></li>
-    </ol>
-
-    <div class="block-tools editor-only" contenteditable="false">
-      <button type="button" data-action="add-item">+ punkt</button>
-      <button type="button" data-action="del-item">- punkt</button>
-      <button type="button" data-action="add-line-last-item">+ linia w punkcie</button>
-      <button type="button" data-action="del-line-last-item">- linia w punkcie</button>
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-function blockTable(){
-  return `
-  <div class="block" data-block="table">
-    <table class="matura-table">
-      <tr><th>Lp.</th><th>Cecha</th><th>Odpowiedź</th></tr>
-      <tr><td>1.</td><td contenteditable="true"></td><td></td></tr>
-      <tr><td>2.</td><td contenteditable="true"></td><td></td></tr>
-    </table>
-
-<div class="block-tools editor-only" contenteditable="false">
-
-      <button type="button" data-action="add-row">+ wiersz</button>
-      <button type="button" data-action="del-row">- wiersz</button>
-      <button type="button" data-action="add-col">+ kolumna</button>
-      <button type="button" data-action="del-col">- kolumna</button>
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-function blockJustifyTable(){
-  return `
-  <div class="block" data-block="justifyTable">
-
-    <table class="justify-table">
-      <tbody>
-        <tr>
-          <td class="ab-col" rowspan="2" contenteditable="true">A.</td>
-          <td class="type-col" rowspan="2" contenteditable="true">...</td>
-          <td class="middle-col" rowspan="4" contenteditable="true">...</td>
-          <td class="num-col">1.</td>
-          <td contenteditable="true">...</td>
-        </tr>
-
-        <tr>
-          <td class="num-col">2.</td>
-          <td contenteditable="true">...</td>
-        </tr>
-
-        <tr>
-          <td class="ab-col" rowspan="2" contenteditable="true">B.</td>
-          <td class="type-col" rowspan="2" contenteditable="true">...</td>
-          <td class="num-col">3.</td>
-          <td contenteditable="true">...</td>
-        </tr>
-
-        <tr>
-          <td class="num-col">4.</td>
-          <td contenteditable="true">...</td>
-        </tr>
-      </tbody>
-    </table>
-
-   <div class="block-tools editor-only" contenteditable="false">
-
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-
-
-
-
-function blockPF(){
-  return `
-  <div class="block" data-block="pf">
-
-    <table class="pf-table">
-      <tr>
-        <td contenteditable="true">[Zdanie 1]</td>
-        <td class="pf-mark">P</td>
-        <td class="pf-mark">F</td>
-      </tr>
-      <tr>
-        <td contenteditable="true">[Zdanie 2]</td>
-        <td class="pf-mark">P</td>
-        <td class="pf-mark">F</td>
-      </tr>
-    </table>
-
-<div class="block-tools editor-only" contenteditable="false">
-
-      <button type="button" data-action="add-pf">+ zdanie</button>
-      <button type="button" data-action="del-pf">- zdanie</button>
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-function blockAtt(which){
-  const num = (which === "att1") ? "1" : "2";
-  return `
-  <div class="block" data-block="${which}">
-
-    <div class="attachment-placeholder" data-att="${which}">
-      <p class="att-title">📎 Załącznik ${num} (${which})</p>
-      <p class="att-note">Wybierz plik w sekcji „Załączniki” i wpisz opis.</p>
-    </div>
-
-<div class="block-tools editor-only" contenteditable="false">
-      <button type="button" data-action="del-block">Usuń blok</button>
-    </div>
-  </div>`;
-}
-
-// =====================
-// addBlock (jedno miejsce prawdy)
-// =====================
-const BLOCK_FACTORY = {
-  opis: blockOpis,
-  polecenie: blockPolecenie,
-  lines: blockLines,
-  list: blockList,
-  table: blockTable,
-  justifyTable: blockJustifyTable,
-  pf: blockPF,
-  luki: blockLuki,
-  calc: blockCalc,
-  abcd: blockABCD,
-  // att1/att2 obsłużymy niżej
-};
-
-function addBlock(type){
-  if (!blocks) return;
-
-  if (type === "att1") {
-    if (document.querySelector("[data-block='att1']")) return;
-    blocks.insertAdjacentHTML("beforeend", blockAtt("att1"));
-    return;
-  }
-  if (type === "att2") {
-    if (document.querySelector("[data-block='att2']")) return;
-    blocks.insertAdjacentHTML("beforeend", blockAtt("att2"));
-    return;
+  function normVal(v) {
+    const s = String(v ?? "").trim();
+    return s === "null" || s === "0000" ? "" : s;
   }
 
-  const fn = BLOCK_FACTORY[type];
-  if (!fn) return;
+  function cap(s) {
+    return s ? s[0].toUpperCase() + s.slice(1) : "";
+  }
 
-  blocks.insertAdjacentHTML("beforeend", fn());
-}
+  function escapeHtml(s) {
+    const entities = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;"
+    };
 
-// =====================
-// CLEAN HTML do zapisu
-// =====================
-function getCleanTaskHTML(){
-  const editor = document.getElementById("task-editor");
-  const clone = editor.cloneNode(true);
+    return String(s).replace(/[&<>"']/g, (c) => entities[c]);
+  }
 
-  clone.querySelectorAll(".editor-only").forEach(el => el.remove());
-  clone.querySelectorAll(".block-tools").forEach(el => el.remove());
-  clone.querySelector("#auto-title")?.remove();
+  function keyify(s) {
+    return String(s ?? "")
+      .trim()
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+  }
 
-  clone.querySelectorAll(".attachment-placeholder").forEach(ph => {
-    ph.innerHTML = "";
-  });
+  // =====================
+  // STAN
+  // =====================
 
-  return clone.innerHTML;
-}
-
-// =====================
-// META do zapisu
-// =====================
-function collectMeta(){
-  const zKey = document.getElementById("zrodlo_select")?.value || "INNE";
-  const zText = (document.getElementById("zrodlo_other")?.value || "").trim()
-    || (document.getElementById("zrodlo_select")?.selectedOptions?.[0]?.textContent || "").trim();
-
-
-  const dz = (document.getElementById("dzial")?.value || "")
-    .split(/[;,]/).map(s=>s.trim()).filter(Boolean);
-
-  return {
-    zrodlo_key: zKey,
-    zrodlo_text: zText,
-    formula: document.getElementById("formula")?.value,
-    poziom: document.getElementById("poziom")?.value,
-    rok: document.getElementById("rok")?.value,
-    miesiac: document.getElementById("miesiac")?.value,
-    l_pkt: document.getElementById("l_pkt")?.value,
-    nr_zad: document.getElementById("nr_zad")?.value,
-    strona: document.getElementById("strona")?.value,
-
-dzial_1: document.getElementById("dzial_1")?.value?.trim() || null,
-dzial_2: document.getElementById("dzial_2")?.value?.trim() || null,
-
-kompetencja_1: document.getElementById("kompetencja_1")?.value?.trim() || null,
-kompetencja_2: document.getElementById("kompetencja_2")?.value?.trim() || null,
-
-    zagadnienie: document.getElementById("zagadnienie")?.value || null,
-    typ: document.getElementById("typ")?.value || null,
-
-
-
-    praca_z_topo: document.getElementById("praca_z_topo")?.checked ? "T" : "N",
-    praca_z_mapa: document.getElementById("praca_z_mapa")?.checked ? "T" : "N",
-    praca_z_tekstem_zrodlowym: document.getElementById("praca_z_tekstem")?.checked ? "T" : "N",
-    praca_z_wykresem: document.getElementById("praca_z_wykresem")?.checked ? "T" : "N",
-
-    czas_min: document.getElementById("czas_min")?.value || 0,
-    czas_max: document.getElementById("czas_max")?.value || 0,
-
-    pp1: document.getElementById("pp1")?.value || null,
-    pp2: document.getElementById("pp2")?.value || null,
-    pp3: document.getElementById("pp3")?.value || null,
-    pp4: document.getElementById("pp4")?.value || null,
-    pp5: document.getElementById("pp5")?.value || null,
-    pp6: document.getElementById("pp6")?.value || null,
-
-    uwagi: document.getElementById("uwagi")?.value || null,
-    auto_title: document.getElementById("auto-title")?.textContent || null
+  const SUGG = {
+    dzialy: [],
+    zagadnienia: [],
+    kompetencje: []
   };
-}
 
-// =====================
-// EVENTY: block-bar (klik w dodawanie bloków)
-// =====================
-document.querySelectorAll(".block-bar button").forEach(btn => {
-  btn.addEventListener("click", () => addBlock(btn.dataset.add));
-});
+  let currentId = null;
+  let explicitId = false;
+  let busy = false;
+  let suggestionRequest = 0;
+  let initialFields = [];
 
-// =====================
-// EVENTY: scope att1/att2
-// =====================
-if (att1Scope && att1Box) {
-  att1Scope.addEventListener("change", () => {
-    att1Box.style.display = (att1Scope.value === "multi") ? "block" : "none";
-  });
-}
-if (att2Scope && att2Box) {
-  att2Scope.addEventListener("change", () => {
-    att2Box.style.display = (att2Scope.value === "multi") ? "block" : "none";
-  });
-}
-
-// =====================
-// EVENTY: akcje w blokach (klik)
-// =====================
-blocks?.addEventListener("click", (e) => {
-  const btn = e.target.closest("button");
-  if (!btn) return;
-
-  const action = btn.dataset.action;
-  const block = btn.closest(".block");
-  if (!block) return;
-
-  if (action === "del-block") block.remove();
-
-  if (action === "add-line") {
-    block.querySelector(".answer-space")
-      ?.insertAdjacentHTML("beforeend", `<div class="line"></div>`);
+  function setLoadedId(id) {
+    currentId = normVal(id) || null;
+    explicitId = true;
   }
 
-  if (action === "add-item") {
-    block.querySelector("ol.answer-list")
-      ?.insertAdjacentHTML("beforeend", `<li><div class="line"></div></li>`);
+  function getLoadedId() {
+    if (explicitId) return currentId;
+
+    // Zgodność ze starszym skryptem edycji,
+    // który może deklarować globalne loadedId.
+    try {
+      if (typeof loadedId !== "undefined") {
+        return loadedId ?? null;
+      }
+    } catch (_) {
+      // Brak dostępnego loadedId.
+    }
+
+    return currentId;
   }
 
-  if (action === "del-item") {
-    const items = block.querySelectorAll("ol.answer-list li");
-    if (items.length > 1) items[items.length - 1].remove();
-  }
+  // =====================
+  // KANONIZACJA METADANYCH
+  // =====================
 
-  if (action === "add-line-last-item") {
-    const items = block.querySelectorAll("ol.answer-list li");
-    const last = items[items.length - 1];
-    last?.insertAdjacentHTML("beforeend", `<div class="line"></div>`);
-  }
+  function canonicalizeSingle(v, list) {
+    const cleaned = String(v ?? "")
+      .trim()
+      .replace(/\s+/g, " ");
 
-  if (action === "del-line-last-item") {
-    const items = block.querySelectorAll("ol.answer-list li");
-    const last = items[items.length - 1];
-    const lines = last ? last.querySelectorAll(".line") : [];
-    if (lines.length > 1) lines[lines.length - 1].remove();
-  }
-
-  if (action === "add-row") {
-    const table = block.querySelector("table");
-    const rows = table ? table.querySelectorAll("tr") : [];
-    if (!table) return;
-    const next = rows.length;
-    table.insertAdjacentHTML("beforeend",
-      `<tr><td>${next}.</td><td contenteditable="true"></td><td></td></tr>`
+    return (
+      list.find((x) => keyify(x) === keyify(cleaned)) ??
+      cleaned
     );
   }
 
-  if (action === "del-row") {
-    const table = block.querySelector("table");
-    const rows = table ? table.querySelectorAll("tr") : [];
-    if (rows.length > 2) rows[rows.length - 1].remove();
+  function canonicalizeFields() {
+    const groups = [
+      [["dzial_1", "dzial_2"], SUGG.dzialy],
+      [["zagadnienie"], SUGG.zagadnienia],
+      [["kompetencja_1", "kompetencja_2"], SUGG.kompetencje]
+    ];
+
+    for (const [ids, list] of groups) {
+      ids.forEach((id) => {
+        if ($(id)) {
+          $(id).value = canonicalizeSingle(value(id), list);
+        }
+      });
+    }
   }
 
-  if (action === "add-col") {
-    const table = block.querySelector("table");
-    const rows = table ? table.querySelectorAll("tr") : [];
-    if (!rows.length) return;
-    const colCount = rows[0].children.length;
+  // =====================
+  // AUTOTYTUŁ
+  // =====================
 
-    rows.forEach((tr, idx) => {
-      tr.insertAdjacentHTML("beforeend", idx === 0
-        ? `<th contenteditable="true">Kolumna ${colCount}</th>`
-        : `<td contenteditable="true"></td>`
+  function buildAutoTitle() {
+    const srcKey =
+      normVal(value("zrodlo_select")) || "INNE";
+
+    const srcText =
+      value("zrodlo_other").trim() ||
+      $("zrodlo_select")
+        ?.selectedOptions?.[0]
+        ?.textContent?.trim() ||
+      "";
+
+    const formula = normVal(value("formula"));
+    const level = normVal(value("poziom"));
+
+    const date = [
+      cap(normVal(value("miesiac"))),
+      normVal(value("rok"))
+    ]
+      .filter(Boolean)
+      .join(" ");
+
+    const number = normVal(value("nr_zad"));
+
+    let label = "";
+
+    if (srcKey.startsWith("CKE_M")) {
+      label = "Matura";
+    } else if (srcKey.startsWith("CKE_I")) {
+      label = "Informator CKE";
+    } else if (srcKey.startsWith("CKE_P")) {
+      label = "Matura próbna CKE";
+    } else if (srcKey.startsWith("NER_M")) {
+      label = "Matura próbna Nowa Era";
+    } else if (srcKey.startsWith("OPE_M")) {
+      label = "Matura próbna Operon";
+    }
+
+    if (label) {
+      const parts = [
+        "Zadanie",
+        [label, date].filter(Boolean).join(" "),
+        level ? `Poziom ${level}` : "",
+        formula
+          ? `(Formuła ${formula})`
+          : "(brak formuły)"
+      ].filter(Boolean);
+
+      return (
+        parts.join(", ") +
+        (number ? ` – Zadanie ${number}` : "")
       );
-    });
+    }
+
+    const dzial = [
+      normVal(value("dzial_1")),
+      normVal(value("dzial_2"))
+    ]
+      .filter(Boolean)
+      .join("; ");
+
+    const zagadnienie = value("zagadnienie").trim();
+    const typ = value("typ");
+
+    return [
+      "Zadanie",
+      srcText,
+      dzial,
+      zagadnienie ? `– ${zagadnienie}` : "",
+      typ ? `(${typ})` : "",
+      number ? `– Zadanie ${number}` : ""
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
-  if (action === "del-col") {
-    const table = block.querySelector("table");
-    const rows = table ? table.querySelectorAll("tr") : [];
-    if (!rows.length) return;
-    const colCount = rows[0].children.length;
-    if (colCount <= 2) return;
-    rows.forEach(tr => tr.lastElementChild?.remove());
+  function updateAutoTitle() {
+    const el = $("auto-title");
+
+    if (!el || el.dataset.auto === "false") return;
+
+    el.dataset.auto = "true";
+    el.textContent = buildAutoTitle();
   }
 
-  if (action === "add-gap") {
-    const line = block.querySelector(".gap-line");
-    line?.insertAdjacentHTML("beforeend", `
-      <span class="gap-unit">
-        <span class="gap-text" contenteditable="true"> [kolejny fragment]</span>
-        <i class="gap-options" contenteditable="true">(opcja1 / opcja2)</i>
-        <span class="inline-answer"></span>
-      </span>
-    `);
+  // =====================
+  // API
+  // =====================
+
+  async function api(url, options) {
+    const res = await fetch(url, options);
+    const raw = await res.text();
+
+    let data;
+
+    try {
+      data = JSON.parse(raw);
+    } catch (_) {
+      throw new Error(
+        `Serwer zwrócił nieprawidłową odpowiedź ` +
+        `(HTTP ${res.status}).`
+      );
+    }
+
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+
+    return data;
   }
 
-  if (action === "del-gap") {
-    const units = block.querySelectorAll(".gap-unit");
-    if (units.length > 1) units[units.length - 1].remove();
+  // =====================
+  // PODPOWIEDZI
+  // =====================
+
+  async function loadMetaSuggestions() {
+    const seq = ++suggestionRequest;
+
+    try {
+      const target = value("db-target") || "general";
+
+      const data = await api(
+        "/api/meta_suggestions",
+        { cache: "no-store" }
+      );
+
+      // Starsza odpowiedź nie nadpisuje nowszych podpowiedzi.
+      if (seq !== suggestionRequest) return;
+
+      const fields = [
+        ["dzialy", "dzial_list"],
+        ["zagadnienia", "zagadnienie_list"],
+        ["kompetencje", "kompetencje_list"]
+      ];
+
+      for (const [key, id] of fields) {
+        SUGG[key] = Array.isArray(data[key])
+          ? [
+              ...new Set(
+                data[key].filter(
+                  (x) => typeof x === "string"
+                )
+              )
+            ]
+          : [];
+
+        if ($(id)) {
+          $(id).innerHTML = SUGG[key]
+            .map(
+              (v) =>
+                `<option value="${escapeHtml(v)}"></option>`
+            )
+            .join("");
+        }
+      }
+    } catch (err) {
+      console.warn(
+        "Nie udało się pobrać podpowiedzi:",
+        err.message
+      );
+    }
   }
 
-  if (action === "add-answer") {
-    const box = block.querySelector(".abcd");
-    if (!box) return;
-    const letters = Array.from(box.querySelectorAll("p")).map(p => (p.textContent || "").trim()[0]);
-    const last = letters[letters.length - 1] || "D";
-    const nextChar = String.fromCharCode(last.charCodeAt(0) + 1);
+  // =====================
+  // GENEROWANIE BLOKÓW
+  // =====================
 
-    box.insertAdjacentHTML("beforeend",
-      `<p contenteditable="true"><strong>${nextChar}.</strong> …</p>`
-    );
-  }
-
-  if (action === "del-answer") {
-    const box = block.querySelector(".abcd");
-    const ps = box ? box.querySelectorAll("p") : [];
-    if (ps.length > 2) ps[ps.length - 1].remove();
-  }
-
-  if (action === "calc-add-row") {
-  const table = block.querySelector(".calc-grid");
-  if (!table) return;
-  const cols = table.querySelector("tr")?.children.length || 8;
-
-  const tr = document.createElement("tr");
-  for (let i = 0; i < cols; i++){
-    const td = document.createElement("td");
-    td.innerHTML = "&nbsp;";
-    tr.appendChild(td);
-  }
-  table.appendChild(tr);
-}
-
-if (action === "calc-del-row") {
-  const table = block.querySelector(".calc-grid");
-  if (!table) return;
-  const rows = table.querySelectorAll("tr");
-  if (rows.length > 2) rows[rows.length - 1].remove(); // zostaw min 2
-}
-
-if (action === "calc-add-col") {
-  const table = block.querySelector(".calc-grid");
-  if (!table) return;
-  table.querySelectorAll("tr").forEach(tr => {
-    const td = document.createElement("td");
-    td.innerHTML = "&nbsp;";
-    tr.appendChild(td);
-  });
-}
-
-if (action === "calc-del-col") {
-  const table = block.querySelector(".calc-grid");
-  if (!table) return;
-  const firstRow = table.querySelector("tr");
-  if (!firstRow) return;
-  const cols = firstRow.children.length;
-  if (cols <= 2) return; // zostaw min 2
-
-  table.querySelectorAll("tr").forEach(tr => {
-    tr.lastElementChild?.remove();
-  });
-}
-
-});
-
-function resetManagerUI() {
-  // 1) reset pól formularza (input/select/checkbox)
-
-
-  // 2) ukryj pola scope dla wiązek
-  const att1Box = document.getElementById("att1_scope_box");
-  const att2Box = document.getElementById("att2_scope_box");
-  if (att1Box) att1Box.style.display = "none";
-  if (att2Box) att2Box.style.display = "none";
-
-  // 3) wyczyść edytor treści (bloki)
-  const blocks = document.getElementById("blocks");
-  if (blocks) blocks.innerHTML = "";
-
-  // 4) przywróć auto-tytuł i włącz auto-mode
-  const title = document.getElementById("auto-title");
-  if (title) {
-    title.dataset.auto = "true";
-    title.textContent = "[Tytuł zadania]";
-  }
-
-  // 5) wyczyść rozwiązanie
-  const sol = document.getElementById("solution-editor");
-  if (sol) {
-    sol.innerHTML = `
-      <p><strong>Zasady oceniania:</strong></p>
-      <p>…</p>
-      <p><strong>Klucz / przykładowe odpowiedzi:</strong></p>
-      <p>…</p>
+  function button(action, label) {
+    return `
+      <button type="button" data-action="${action}">
+        ${label}
+      </button>
     `;
   }
 
-  // 6) “odśwież” podpowiedzi (nie trzeba reload strony)
-  if (typeof loadMetaSuggestions === "function") {
-    loadMetaSuggestions();
+  function tools(actions) {
+    return `
+      <div
+        class="block-tools editor-only"
+        contenteditable="false"
+      >
+        ${actions.map((a) => button(...a)).join("")}
+        ${button("del-block", "Usuń blok")}
+      </div>
+    `;
   }
 
-  // 7) dodaj domyślny blok, jak lubisz (np. linie)
-  if (typeof addBlock === "function") {
-    addBlock("lines");
+  const line = '<div class="line"></div>';
+
+  function gap() {
+    return `
+      <span class="gap-unit">
+        <span class="gap-text" contenteditable="true">
+          [Zdanie]
+        </span>
+        <i class="gap-options" contenteditable="true">
+          (opcja1 / opcja2)
+        </i>
+        <span class="inline-answer"></span>
+      </span>
+    `;
   }
 
-  // 8) przebuduj auto-tytuł na bazie resetowanych pól
-  if (typeof updateAutoTitle === "function") {
+  function pfRow(n) {
+    return `
+      <tr>
+        <td contenteditable="true">[Zdanie ${n}]</td>
+        <td class="pf-mark">P</td>
+        <td class="pf-mark">F</td>
+      </tr>
+    `;
+  }
+
+  function calcGridRows(rows, cols) {
+    return Array.from(
+      { length: rows },
+      () => `
+        <tr>
+          ${"<td>&nbsp;</td>".repeat(cols)}
+        </tr>
+      `
+    ).join("");
+  }
+
+  const FACTORY = {
+    opis: () => [
+      `
+        <p contenteditable="true">
+          [Wprowadzenie – kliknij i wpisz]
+        </p>
+      `,
+      []
+    ],
+
+    polecenie: () => [
+      `
+        <p contenteditable="true">
+          <strong>[Polecenie – kliknij i wpisz]</strong>
+        </p>
+      `,
+      []
+    ],
+
+    lines: () => [
+      `
+        <div class="answer-space">
+          ${line.repeat(2)}
+        </div>
+      `,
+      [
+        ["add-line", "+ linia"],
+        ["del-line", "− linia"]
+      ]
+    ],
+
+    list: () => [
+      `
+        <ol class="answer-list">
+          ${`<li>${line}</li>`.repeat(3)}
+        </ol>
+      `,
+      [
+        ["add-item", "+ punkt"],
+        ["del-item", "− punkt"],
+        ["add-line-last-item", "+ linia w punkcie"],
+        ["del-line-last-item", "− linia w punkcie"]
+      ]
+    ],
+
+    table: () => [
+      `
+        <table class="matura-table">
+          <thead>
+            <tr>
+              <th contenteditable="true">Lp.</th>
+              <th contenteditable="true">Cecha</th>
+              <th contenteditable="true">Odpowiedź</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1.</td>
+              <td contenteditable="true"></td>
+              <td></td>
+            </tr>
+            <tr>
+              <td>2.</td>
+              <td contenteditable="true"></td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+      `,
+      [
+        ["add-row", "+ wiersz"],
+        ["del-row", "− wiersz"],
+        ["add-col", "+ kolumna"],
+        ["del-col", "− kolumna"]
+      ]
+    ],
+
+    justifyTable: () => [
+      `
+        <table class="justify-table">
+          <tbody>
+            <tr>
+              <td
+                class="ab-col"
+                rowspan="2"
+                contenteditable="true"
+              >A.</td>
+
+              <td
+                class="type-col"
+                rowspan="2"
+                contenteditable="true"
+              >...</td>
+
+              <td
+                class="middle-col"
+                rowspan="4"
+                contenteditable="true"
+              >...</td>
+
+              <td class="num-col">1.</td>
+              <td contenteditable="true">...</td>
+            </tr>
+
+            <tr>
+              <td class="num-col">2.</td>
+              <td contenteditable="true">...</td>
+            </tr>
+
+            <tr>
+              <td
+                class="ab-col"
+                rowspan="2"
+                contenteditable="true"
+              >B.</td>
+
+              <td
+                class="type-col"
+                rowspan="2"
+                contenteditable="true"
+              >...</td>
+
+              <td class="num-col">3.</td>
+              <td contenteditable="true">...</td>
+            </tr>
+
+            <tr>
+              <td class="num-col">4.</td>
+              <td contenteditable="true">...</td>
+            </tr>
+          </tbody>
+        </table>
+      `,
+      []
+    ],
+
+    pf: () => [
+      `
+        <table class="pf-table">
+          <tbody>
+            ${pfRow(1)}
+            ${pfRow(2)}
+          </tbody>
+        </table>
+      `,
+      [
+        ["add-pf", "+ zdanie"],
+        ["del-pf", "− zdanie"]
+      ]
+    ],
+
+    luki: () => [
+      `<p class="gap-line">${gap()}</p>`,
+      [
+        ["add-gap", "+ luka"],
+        ["del-gap", "− luka"]
+      ]
+    ],
+
+    calc: () => [
+      `
+        <p><strong>Obliczenia:</strong></p>
+
+        <table
+          class="calc-grid"
+          data-rows="8"
+          data-cols="30"
+        >
+          <tbody>
+            ${calcGridRows(8, 30)}
+          </tbody>
+        </table>
+      `,
+      [
+        ["calc-add-row", "+ wiersz"],
+        ["calc-del-row", "− wiersz"],
+        ["calc-add-col", "+ kolumna"],
+        ["calc-del-col", "− kolumna"]
+      ]
+    ],
+
+    abcd: () => [
+      `
+        <div class="abcd">
+          ${["A", "B", "C", "D"]
+            .map(
+              (c) => `
+                <p contenteditable="true">
+                  <strong>${c}.</strong> …
+                </p>
+              `
+            )
+            .join("")}
+        </div>
+      `,
+      [
+        ["add-answer", "+ odpowiedź"],
+        ["del-answer", "− odpowiedź"]
+      ]
+    ]
+  };
+
+  function addBlock(type) {
+    const blocks = $("blocks");
+    if (!blocks) return;
+
+    if (["att1", "att2"].includes(type)) {
+      if (
+        blocks.querySelector(`[data-block="${type}"]`)
+      ) {
+        return;
+      }
+
+      blocks.insertAdjacentHTML(
+        "beforeend",
+        `
+          <div class="block" data-block="${type}">
+            <div
+              class="attachment-placeholder"
+              data-att="${type}"
+            >
+              <p class="att-title">
+                📎 Załącznik ${type.slice(-1)} (${type})
+              </p>
+              <p class="att-note">
+                Wybierz plik w sekcji „Załączniki”
+                i wpisz opis.
+              </p>
+            </div>
+
+            ${tools([])}
+          </div>
+        `
+      );
+
+      return;
+    }
+
+    if (
+      !Object.prototype.hasOwnProperty.call(
+        FACTORY,
+        type
+      )
+    ) {
+      return;
+    }
+
+    const [body, actions] = FACTORY[type]();
+
+    blocks.insertAdjacentHTML(
+      "beforeend",
+      `
+        <div class="block" data-block="${type}">
+          ${body}
+          ${tools(actions)}
+        </div>
+      `
+    );
+  }
+
+  // =====================
+  // AKCJE W BLOKACH
+  // =====================
+
+  function removeLast(nodes, min = 1) {
+    if (nodes.length > min) {
+      nodes[nodes.length - 1].remove();
+    }
+  }
+
+  function answerLabel(n) {
+    let s = "";
+
+    do {
+      s = String.fromCharCode(65 + (n % 26)) + s;
+      n = Math.floor(n / 26) - 1;
+    } while (n >= 0);
+
+    return s;
+  }
+
+  function handleBlockClick(e) {
+    const btn = e.target.closest?.(
+      "button[data-action]"
+    );
+
+    const block = btn?.closest(".block");
+    if (!block) return;
+
+    e.preventDefault();
+
+    const action = btn.dataset.action;
+    const q = (s) => block.querySelector(s);
+    const qa = (s) => block.querySelectorAll(s);
+
+    switch (action) {
+      case "del-block":
+        block.remove();
+        return;
+
+      case "add-line":
+        q(".answer-space")?.insertAdjacentHTML(
+          "beforeend",
+          line
+        );
+        break;
+
+      case "del-line":
+        removeLast(qa(".answer-space > .line"));
+        break;
+
+      case "add-item":
+        q(".answer-list")?.insertAdjacentHTML(
+          "beforeend",
+          `<li>${line}</li>`
+        );
+        break;
+
+      case "del-item":
+        removeLast(qa(".answer-list > li"));
+        break;
+
+      case "add-line-last-item":
+        q(".answer-list > li:last-child")
+          ?.insertAdjacentHTML("beforeend", line);
+        break;
+
+      case "del-line-last-item":
+        removeLast(
+          qa(".answer-list > li:last-child > .line")
+        );
+        break;
+
+      case "add-gap":
+        q(".gap-line")?.insertAdjacentHTML(
+          "beforeend",
+          ` ${gap()}`
+        );
+        break;
+
+      case "del-gap":
+        removeLast(qa(".gap-unit"));
+        break;
+
+      case "add-pf": {
+        const table = q(".pf-table");
+
+        if (table) {
+          const tbody =
+            table.tBodies[0] || table.createTBody();
+
+          tbody.insertAdjacentHTML(
+            "beforeend",
+            pfRow(table.rows.length + 1)
+          );
+        }
+
+        break;
+      }
+
+      case "del-pf":
+        removeLast(qa(".pf-table tr"));
+        break;
+
+      case "add-answer": {
+        const box = q(".abcd");
+        if (!box) break;
+
+        const label = answerLabel(
+          box.querySelectorAll("p").length
+        );
+
+        box.insertAdjacentHTML(
+          "beforeend",
+          `
+            <p contenteditable="true">
+              <strong>${label}.</strong> …
+            </p>
+          `
+        );
+
+        break;
+      }
+
+      case "del-answer":
+        removeLast(qa(".abcd p"), 2);
+        break;
+
+      case "add-row": {
+        const table = q(".matura-table");
+        if (!table) break;
+
+        const count =
+          table.rows[0]?.cells.length || 3;
+
+        const tr = document.createElement("tr");
+
+        for (let i = 0; i < count; i++) {
+          const td = document.createElement("td");
+
+          if (i === 0) {
+            td.textContent = `${table.rows.length}.`;
+          } else if (i !== 2) {
+            td.contentEditable = "true";
+          }
+
+          tr.append(td);
+        }
+
+        const tbody =
+          table.tBodies[0] || table.createTBody();
+
+        tbody.append(tr);
+        break;
+      }
+
+      case "del-row": {
+        const table = q(".matura-table");
+
+        if (table && table.rows.length > 2) {
+          table.deleteRow(table.rows.length - 1);
+        }
+
+        break;
+      }
+
+      case "add-col": {
+        const table = q(".matura-table");
+        if (!table) break;
+
+        const n =
+          table.rows[0]?.cells.length || 0;
+
+        Array.from(table.rows).forEach((tr, i) => {
+          const cell = document.createElement(
+            i === 0 ? "th" : "td"
+          );
+
+          cell.contentEditable = "true";
+
+          if (i === 0) {
+            cell.textContent = `Kolumna ${n + 1}`;
+          }
+
+          tr.append(cell);
+        });
+
+        break;
+      }
+
+      case "del-col": {
+        const table = q(".matura-table");
+
+        if (
+          table &&
+          table.rows[0]?.cells.length > 2
+        ) {
+          Array.from(table.rows).forEach((tr) => {
+            tr.lastElementChild?.remove();
+          });
+        }
+
+        break;
+      }
+
+      case "calc-add-row": {
+        const table = q(".calc-grid");
+        if (!table) break;
+
+        const cols =
+          table.rows[0]?.cells.length || 30;
+
+        const tbody =
+          table.tBodies[0] || table.createTBody();
+
+        tbody.insertAdjacentHTML(
+          "beforeend",
+          calcGridRows(1, cols)
+        );
+
+        break;
+      }
+
+      case "calc-del-row":
+        removeLast(qa(".calc-grid tr"), 2);
+        break;
+
+      case "calc-add-col":
+        qa(".calc-grid tr").forEach((tr) => {
+          tr.insertAdjacentHTML(
+            "beforeend",
+            "<td>&nbsp;</td>"
+          );
+        });
+        break;
+
+      case "calc-del-col": {
+        const table = q(".calc-grid");
+
+        if (
+          table &&
+          table.rows[0]?.cells.length > 2
+        ) {
+          Array.from(table.rows).forEach((tr) => {
+            tr.lastElementChild?.remove();
+          });
+        }
+
+        break;
+      }
+    }
+
+    const grid = q(".calc-grid");
+
+    if (grid) {
+      grid.dataset.rows = String(grid.rows.length);
+      grid.dataset.cols = String(
+        grid.rows[0]?.cells.length || 0
+      );
+    }
+  }
+
+  // =====================
+  // CZYSZCZENIE HTML DO ZAPISU
+  // =====================
+
+  function cleanClone(el) {
+    const clone = el.cloneNode(true);
+
+    clone
+      .querySelectorAll(
+        ".editor-only, .block-tools, script"
+      )
+      .forEach((n) => n.remove());
+
+    [clone, ...clone.querySelectorAll("*")]
+      .forEach((n) => {
+        n.removeAttribute("contenteditable");
+
+        Array.from(n.attributes).forEach((a) => {
+          if (a.name.startsWith("on")) {
+            n.removeAttribute(a.name);
+          }
+        });
+      });
+
+    return clone;
+  }
+
+  function getCleanTaskHTML() {
+    const editor = $("task-editor");
+
+    if (!editor) {
+      throw new Error(
+        "Brakuje elementu #task-editor."
+      );
+    }
+
+    const clone = cleanClone(editor);
+
+    clone.querySelector("#auto-title")?.remove();
+
+    clone
+      .querySelectorAll(".attachment-placeholder")
+      .forEach((n) => n.replaceChildren());
+
+    return clone.innerHTML;
+  }
+
+  // =====================
+  // METADANE DO ZAPISU
+  // =====================
+
+  function collectMeta() {
+    canonicalizeFields();
     updateAutoTitle();
+
+    const meta = {
+      target: value("db-target") || "general",
+
+      zrodlo_key:
+        value("zrodlo_select") || "INNE",
+
+      zrodlo_text:
+        value("zrodlo_other").trim() ||
+        $("zrodlo_select")
+          ?.selectedOptions?.[0]
+          ?.textContent?.trim() ||
+        "",
+
+      auto_title:
+        $("auto-title")?.textContent || null
+    };
+
+    const fields = [
+      "formula",
+      "poziom",
+      "rok",
+      "miesiac",
+      "l_pkt",
+      "nr_zad",
+      "strona",
+
+      "dzial_1",
+      "dzial_2",
+
+      "kompetencja_1",
+      "kompetencja_2",
+
+      "zagadnienie",
+      "typ",
+
+      "pp1",
+      "pp2",
+      "pp3",
+      "pp4",
+      "pp5",
+      "pp6",
+
+      "uwagi"
+    ];
+
+    for (const id of fields) {
+      meta[id] = normVal(value(id)) || null;
+    }
+
+    for (const id of ["czas_min", "czas_max"]) {
+      const n = Number(value(id));
+
+      if (!Number.isFinite(n) || n < 0) {
+        throw new Error(
+          `Pole ${id} musi zawierać liczbę nieujemną.`
+        );
+      }
+
+      meta[id] = n;
+    }
+
+    if (
+      meta.czas_max > 0 &&
+      meta.czas_min > meta.czas_max
+    ) {
+      throw new Error(
+        "Czas minimalny nie może być większy " +
+        "niż maksymalny."
+      );
+    }
+
+    const flags = [
+      ["praca_z_topo", "praca_z_topo"],
+      ["praca_z_mapa", "praca_z_mapa"],
+      [
+        "praca_z_tekstem_zrodlowym",
+        "praca_z_tekstem"
+      ],
+      ["praca_z_wykresem", "praca_z_wykresem"]
+    ];
+
+    for (const [key, id] of flags) {
+      meta[key] = $(id)?.checked ? "T" : "N";
+    }
+
+    return meta;
   }
-}
 
-document.getElementById("reset-form")?.addEventListener("click", resetManagerUI);
+  // =====================
+  // ZAŁĄCZNIKI — WIDOCZNOŚĆ ZAKRESÓW
+  // =====================
 
+  function syncScopes() {
+    for (const n of [1, 2]) {
+      const box = $(`att${n}_scope_box`);
 
-async function resetAttachments(mode){
-  const msg = (mode === "hard")
-    ? "Usunie pliki załączników ORAZ wyczyści pola att w tasks_private.json. Na pewno?"
-    : "Usunie tylko pliki załączników (img_private + attachment_private). Na pewno?";
-
-  if (!confirm(msg)) return;
-
-  const res = await fetch("/api/reset_attachments", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ mode })
-  });
-
-  const data = await res.json().catch(()=> ({}));
-  if (!res.ok || !data.ok) {
-    alert("Błąd resetu");
-    return;
+      if (box) {
+        box.style.display =
+          value(`att${n}_scope`) === "multi"
+            ? "block"
+            : "none";
+      }
+    }
   }
 
-  alert(
-    `OK: ${data.mode}\n` +
-    `Usunięte pliki: ${data.removed_files}\n` +
-    `Wyczyszczone rekordy: ${data.records_cleared}`
-  );
-}
+  // =====================
+  // RESET FORMULARZA
+  // =====================
 
-document.getElementById("reset-att-soft")?.addEventListener("click", () => resetAttachments("soft"));
-document.getElementById("reset-att-hard")?.addEventListener("click", () => resetAttachments("hard"));
+  function resetManagerUI() {
+    if (busy) return;
 
+    initialFields.forEach(
+      ({ el, val, checked }) => {
+        if (el.type === "file") {
+          el.value = "";
+        } else {
+          el.value = val;
+        }
 
-// =====================
-// ZAPIS
-// =====================
-saveBtn?.addEventListener("click", async () => {
-  const payload = collectMeta();
+        if (
+          ["checkbox", "radio"].includes(el.type)
+        ) {
+          el.checked = checked;
+        }
+      }
+    );
 
-  const fd = new FormData();
-  fd.append("meta", JSON.stringify(payload));
-  fd.append("body_html", getCleanTaskHTML());
-  fd.append("solution_html", document.getElementById("solution-editor").innerHTML);
+    setLoadedId(null);
 
-  // att1
-  fd.append("att1_type", document.getElementById("att1_type")?.value || "");
-  fd.append("att1_desc", document.getElementById("att1_desc")?.value || "");
-  fd.append("att1_intro", document.getElementById("att1_intro")?.value || "");
+    $("blocks")?.replaceChildren();
 
-  const a1 = document.getElementById("att1_file")?.files?.[0];
-  if (a1) fd.append("att1_file", a1);
+    if ($("auto-title")) {
+      $("auto-title").dataset.auto = "true";
+    }
 
-  // att2
-  fd.append("att2_type", document.getElementById("att2_type")?.value || "");
-  fd.append("att2_desc", document.getElementById("att2_desc")?.value || "");
-  fd.append("att2_intro", document.getElementById("att2_intro")?.value || "");
-  const a2 = document.getElementById("att2_file")?.files?.[0];
-  if (a2) fd.append("att2_file", a2);
+    if ($("solution-editor")) {
+      $("solution-editor").innerHTML = `
+        <p><strong>Zasady oceniania:</strong></p>
+        <p>…</p>
+        <p>
+          <strong>
+            Klucz / przykładowe odpowiedzi:
+          </strong>
+        </p>
+        <p>…</p>
+      `;
+    }
 
-  const res = await fetch("/api/save_task", { method: "POST", body: fd });
-  const data = await res.json();
+    syncScopes();
+    addBlock("lines");
+    updateAutoTitle();
 
-  if (!res.ok || !data.ok) {
-    alert("Błąd zapisu: " + (data.error || res.status));
-    return;
+    void loadMetaSuggestions();
   }
 
-  alert("Zapisano! ID: " + data.id);
+  // =====================
+  // BLOKADA WIELOKROTNYCH OPERACJI
+  // =====================
 
-  // odśwież podpowiedzi po zapisie
-  await loadMetaSuggestions();
-});
+  async function runOperation(label, fn) {
+    if (busy) return;
 
-// =====================
-// INIT
-// =====================
-document.addEventListener("DOMContentLoaded", async () => {
-  // auto-title
-  updateAutoTitle();
-  autoTitleEl?.addEventListener("input", () => (autoTitleEl.dataset.auto = "false"));
+    busy = true;
 
+    const controls = Array.from(
+      document.querySelectorAll(
+        [
+          "#save-task",
+          "#import-btn",
+          "#reset-form",
+          "#reset-att-soft",
+          "#reset-att-hard",
+          "#db-target"
+        ].join(",")
+      )
+    );
 
+    const states = controls.map(
+      (el) => [el, el.disabled]
+    );
 
-  ["formula","poziom","rok","miesiac","nr_zad","dzial","zagadnienie","typ","zrodlo_select","zrodlo_other"]
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (!el) return;
-      el.addEventListener("input", updateAutoTitle);
-      el.addEventListener("change", updateAutoTitle);
+    controls.forEach((el) => {
+      el.disabled = true;
     });
 
-  // suggestions
-  await loadMetaSuggestions();
+    try {
+      await fn();
+    } catch (err) {
+      console.error(label, err);
+      alert(`${label}: ${err.message}`);
+    } finally {
+      busy = false;
 
-  // kanonizacja na blur
-  document.getElementById("dzial_1")?.addEventListener("blur", (e)=>{
-    e.target.value = canonicalizeSingle(e.target.value, SUGG.dzialy);
+      states.forEach(([el, disabled]) => {
+        el.disabled = disabled;
+      });
+    }
+  }
+
+  // =====================
+  // ZAPIS ZADANIA
+  // =====================
+
+  async function saveTask() {
+    const meta = collectMeta();
+    const fd = new FormData();
+
+    fd.append(
+      "meta",
+      JSON.stringify({
+        ...meta,
+        id: getLoadedId()
+      })
+    );
+
+    fd.append(
+      "body_html",
+      getCleanTaskHTML()
+    );
+
+    const solution = $("solution-editor");
+
+    fd.append(
+      "solution_html",
+      solution
+        ? cleanClone(solution).innerHTML
+        : ""
+    );
+
+    for (const n of [1, 2]) {
+      for (
+        const field of ["type", "desc", "intro"]
+      ) {
+        fd.append(
+          `att${n}_${field}`,
+          value(`att${n}_${field}`)
+        );
+      }
+
+      // Odczyt tych pól musi być zgodny z backendem.
+      const scope =
+        value(`att${n}_scope`) || "single";
+
+      const tasks =
+        scope === "multi"
+          ? value(`att${n}_tasks`).trim()
+          : "";
+
+      if (scope === "multi" && !tasks) {
+        throw new Error(
+          `Załącznik ${n}: wpisz numery zadań we wiązce.`
+        );
+      }
+
+      fd.append(`att${n}_scope`, scope);
+      fd.append(`att${n}_tasks`, tasks);
+
+      const file =
+        $(`att${n}_file`)?.files?.[0];
+
+      if (file) {
+        fd.append(`att${n}_file`, file);
+      }
+    }
+
+      const endpoint = getLoadedId()
+        ? "/api/update_task"
+        : "/api/save_task";
+
+      const data = await api(
+        endpoint,
+        {
+          method: "POST",
+          body: fd
+        }
+      );
+
+    if (!data.ok || !data.id) {
+      throw new Error(
+        "Serwer nie potwierdził zapisu " +
+        "i ID zadania."
+      );
+    }
+
+    setLoadedId(data.id);
+
+    alert(`Zapisano! ID: ${data.id}`);
+
+    await loadMetaSuggestions();
+  }
+
+  // =====================
+  // IMPORT ZIP
+  // =====================
+
+  async function importPackage() {
+    const file =
+      $("import-file")?.files?.[0];
+
+    if (!file) {
+      throw new Error("Wybierz plik .zip.");
+    }
+
+    if (!/\.zip$/i.test(file.name)) {
+      throw new Error(
+        "Import wymaga pliku .zip."
+      );
+    }
+
+    const target =
+      value("db-target") || "general";
+
+    const fd = new FormData();
+    fd.append("package", file);
+
+    const data = await api(
+      "/api/import_package",
+      {
+        method: "POST",
+        body: fd
+      }
+    );
+
+    if (!data.ok) {
+      throw new Error(
+        data.error ||
+        "Serwer nie potwierdził importu."
+      );
+    }
+
+      alert(
+        `Import zakończony.\n` +
+        `Zadania: ${data.imported_count ?? 1}\n` +
+        `Dodane: ${data.created_count ?? 0}\n` +
+        `Nadpisane: ${data.updated_count ?? 0}`
+      );
+
+    if ($("import-file")) {
+      $("import-file").value = "";
+    }
+
+    await loadMetaSuggestions();
+  }
+
+  // =====================
+  // RESET ZAŁĄCZNIKÓW
+  // =====================
+
+  async function resetAttachments(mode) {
+    const target =
+      value("db-target") || "general";
+
+    const msg =
+      mode === "hard"
+        ? (
+            `Baza: ${target}. ` +
+            "Usunąć pliki załączników i wyczyścić " +
+            "pola załączników w rekordach?"
+          )
+        : (
+            `Baza: ${target}. ` +
+            "Usunąć pliki załączników? " +
+            "Odwołania w rekordach pozostaną."
+          );
+
+    if (!confirm(msg)) return;
+
+    const data = await api(
+      "/api/reset_attachments",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ mode })
+      }
+    );
+
+    if (!data.ok) {
+      throw new Error(
+        "Serwer nie potwierdził resetu."
+      );
+    }
+
+    alert(
+      `OK: ${data.mode ?? mode}\n` +
+      `Usunięte pliki: ${data.removed_files ?? 0}\n` +
+      `Wyczyszczone rekordy: ${data.records_cleared ?? 0}`
+    );
+  }
+
+  // =====================
+  // WKLEJANIE CZYSTEGO TEKSTU
+  // =====================
+
+  function handlePaste(e) {
+    const editable = e.target.closest?.(
+      "[contenteditable]"
+    );
+
+    if (
+      !editable ||
+      editable.getAttribute("contenteditable") !==
+        "true"
+    ) {
+      return;
+    }
+
+    if (
+      !editable.closest(
+        "#task-editor, #solution-editor"
+      )
+    ) {
+      return;
+    }
+
+    if (!e.clipboardData) return;
+
+    e.preventDefault();
+
+    const text =
+      e.clipboardData.getData("text/plain");
+
+    const selection = window.getSelection();
+
+    if (!selection?.rangeCount) return;
+
+    const range = selection.getRangeAt(0);
+
+    if (
+      !editable.contains(
+        range.commonAncestorContainer
+      )
+    ) {
+      return;
+    }
+
+    range.deleteContents();
+
+    const node = document.createTextNode(text);
+
+    range.insertNode(node);
+    range.setStartAfter(node);
+    range.collapse(true);
+
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    editable.dispatchEvent(
+      new Event("input", { bubbles: true })
+    );
+  }
+
+  // =====================
+  // INIT
+  // =====================
+
+  function init() {
+    // Stan początkowy pól służy do resetowania.
+    initialFields = Array.from(
+      document.querySelectorAll(
+        "input, select, textarea"
+      )
+    ).map((el) => ({
+      el,
+      val: el.value,
+      checked: el.checked
+    }));
+
+    // Dodawanie bloków.
+    document
+      .querySelectorAll(".block-bar button")
+      .forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          addBlock(btn.dataset.add);
+        });
+      });
+
+    // Akcje wewnątrz bloków.
+    $("blocks")?.addEventListener(
+      "click",
+      handleBlockClick
+    );
+
+    // Zakresy załączników.
+    for (const n of [1, 2]) {
+      $(`att${n}_scope`)?.addEventListener(
+        "change",
+        syncScopes
+      );
+    }
+
+    // Ręczna edycja wyłącza automatyczny tytuł.
+    $("auto-title")?.addEventListener(
+      "input",
+      () => {
+        $("auto-title").dataset.auto = "false";
+      }
+    );
+
+    const titleFields = [
+      "formula",
+      "poziom",
+      "rok",
+      "miesiac",
+      "nr_zad",
+      "dzial_1",
+      "dzial_2",
+      "zagadnienie",
+      "typ",
+      "zrodlo_select",
+      "zrodlo_other"
+    ];
+
+    for (const id of titleFields) {
+      for (const event of ["input", "change"]) {
+        $(id)?.addEventListener(
+          event,
+          updateAutoTitle
+        );
+      }
+    }
+
+    // Ujednolicanie pisowni metadanych.
+    for (
+      const id of [
+        "dzial_1",
+        "dzial_2",
+        "zagadnienie",
+        "kompetencja_1",
+        "kompetencja_2"
+      ]
+    ) {
+      $(id)?.addEventListener("blur", () => {
+        canonicalizeFields();
+        updateAutoTitle();
+      });
+    }
+
+    // ID zadania nie przechodzi automatycznie
+    // między różnymi bazami.
+    $("db-target")?.addEventListener(
+      "change",
+      () => {
+        setLoadedId(null);
+        void loadMetaSuggestions();
+      }
+    );
+
+    const operations = [
+      ["save-task", "Błąd zapisu", saveTask],
+      ["import-btn", "Błąd importu", importPackage],
+      [
+        "reset-att-soft",
+        "Błąd resetu",
+        () => resetAttachments("soft")
+      ],
+      [
+        "reset-att-hard",
+        "Błąd resetu",
+        () => resetAttachments("hard")
+      ]
+    ];
+
+    for (const [id, label, fn] of operations) {
+      $(id)?.addEventListener("click", (e) => {
+        e.preventDefault();
+        void runOperation(label, fn);
+      });
+    }
+
+    $("reset-form")?.addEventListener(
+      "click",
+      (e) => {
+        e.preventDefault();
+        resetManagerUI();
+      }
+    );
+
+    document.addEventListener(
+      "paste",
+      handlePaste
+    );
+// Formularz obsługujemy przyciskami.
+// Enter w pojedynczym polu nie przeładuje strony.
+$("task-form")?.addEventListener(
+  "submit",
+  (e) => e.preventDefault()
+);
+
+// Resetuje wyłącznie pola załączników.
+// Nie usuwa plików zapisanych już w bazie.
+$("reset-attachments")?.addEventListener(
+  "click",
+  (e) => {
+    e.preventDefault();
+
+    if (busy) return;
+
+    for (const n of [1, 2]) {
+      const file = $(`att${n}_file`);
+
+      if (file) {
+        file.value = "";
+      }
+
+      for (
+        const field of ["desc", "intro", "tasks"]
+      ) {
+        const el = $(`att${n}_${field}`);
+
+        if (el) {
+          el.value = "";
+        }
+      }
+
+      const type = $(`att${n}_type`);
+      const scope = $(`att${n}_scope`);
+
+      if (type) {
+        type.value = "img";
+      }
+
+      if (scope) {
+        scope.value = "single";
+      }
+    }
+
+    syncScopes();
+  }
+);
+    syncScopes();
+    updateAutoTitle();
+
+    // Nie dopisuje domyślnego bloku,
+    // jeśli zadanie ma już treść.
+    if (
+      $("blocks") &&
+      !$("blocks").querySelector(".block")
+    ) {
+      addBlock("lines");
+    }
+
+    void loadMetaSuggestions();
+
+    console.log("meneger.js OK");
+  }
+
+  // =====================
+  // PUBLICZNE FUNKCJE
+  // =====================
+
+  window.GeoFinderManager = {
+    addBlock,
+    buildAutoTitle,
+    updateAutoTitle,
+    collectMeta,
+    getCleanTaskHTML,
+    loadMetaSuggestions,
+    resetManagerUI,
+    setLoadedId,
+    getLoadedId
+  };
+
+  // Zgodność z wywołaniami z istniejącego HTML
+  // i pozostałych skryptów.
+  Object.assign(window, {
+    addBlock,
+    buildAutoTitle,
+    updateAutoTitle,
+    collectMeta,
+    getCleanTaskHTML,
+    loadMetaSuggestions,
+    resetManagerUI
   });
 
-  document.getElementById("dzial_2")?.addEventListener("blur", (e)=>{
-    e.target.value = canonicalizeSingle(e.target.value, SUGG.dzialy);
-  });
-  document.getElementById("zagadnienie")?.addEventListener("blur", (e)=>{
-    e.target.value = canonicalizeSingle(e.target.value, SUGG.zagadnienia);
-  });
-
-  document.getElementById("kompetencja_1")?.addEventListener("blur", (e)=>{
-  e.target.value = canonicalizeSingle(e.target.value, SUGG.kompetencje);
-});
-document.getElementById("kompetencja_2")?.addEventListener("blur", (e)=>{
-  e.target.value = canonicalizeSingle(e.target.value, SUGG.kompetencje);
-});
-
-  // domyślny blok
-  addBlock("lines");
-
-  console.log("meneger.js OK");
-});
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      init,
+      { once: true }
+    );
+  } else {
+    init();
+  }
+})();

@@ -4,15 +4,20 @@
   <meta charset="UTF-8">
   <title>GeoFinder – generator arkuszy (nauczyciel) v.1.0 </title>
   <link rel="stylesheet" href="../style.css">
-</head>
-
+<style>
+@media screen {
+ #department-picker summary {cursor:pointer;padding:8px;border:1px solid #ccc;border-radius:6px}
+ #department-search {width:100%;box-sizing:border-box;margin:8px 0;padding:8px}
+ #filters #filter-dzial {display:block;max-height:300px;overflow:auto}
+ #filters #filter-dzial label {display:flex!important;align-items:flex-start;white-space:normal;gap:8px;padding:6px 2px;font-size:14px}
+ #filter-dzial input {flex:0 0 auto;margin-top:3px}
+ #generator-status {padding:8px;color:#344054}
+}
+</style></head>
 <body data-mode="student">
-
 <h1 class="no-print">GeoFinder – generator arkusza v.1.0</h1>
-
 <!-- ================= PANEL FILTRÓW ================= -->
 <div class="no-print" id="filters">
-  
   <div class="filter-group">
       <button type="button" onclick="toggleAllFilters(true)">
         Zaznacz wszystkie filtry
@@ -21,49 +26,38 @@
         Odznacz wszystkie filtry
       </button>
   </div>
-
-
-
   <div class="filter-group">
     <strong>Źródło:</strong>
     <div id="filter-zrodlo"></div>
   </div>
-  
-  
   <div class="filter-group">
     <strong>Formuła:</strong>
     <div id="filter-formula"></div>
   </div>
-  
   <div class="filter-group">
     <strong>Rok:</strong>
     <div id="filter-rok"></div>
   </div>
-
-  
   <div class="filter-group">
     <strong>Sesja:</strong>
     <div id="filter-miesiac"></div>
   </div>
-
-  
   <div class="filter-group">
     <strong>Poziom:</strong>
     <div id="filter-poziom"></div>
   </div>
-
-  
   <div class="filter-group">
     <strong>Dział:</strong>
-    <div id="filter-dzial"></div>
+    <details id="department-picker"><summary id="department-summary">Działy: wszystkie</summary>
+<input id="department-search" type="search" placeholder="Wyszukaj dział…" aria-label="Wyszukaj dział">
+<button type="button" onclick="setDepartments(true)">Wszystkie działy</button>
+<button type="button" onclick="setDepartments(false)">Wyczyść wybór</button>
+<div id="filter-dzial"></div></details>
   </div>
-
-  
   <div class="filter-group">
     <strong>Typ zadania:</strong>
     <div id="filter-typ"></div>
   </div>
-
   <div class="filter-group">
     <strong>Druk:</strong>
     <label>
@@ -71,15 +65,12 @@
       Drukuj z rozwiązaniami
     </label>
   </div>
-
     <div class="filter-group">
     <strong>Tytuł arkusza:</strong>
     <input type="text" id="sheet-title"
          placeholder="np. Arkusz powtórzeniowy – hydrosfera"
          style="width:100%;">
   </div>
-
-
 <div class="filter-group">
   <strong>Sortowanie:</strong>
   <select id="sort-mode">
@@ -91,50 +82,33 @@
     <option value="shuffle">Losowo</option>
   </select>
 </div>
-
 <div class="filter-group">
-  <strong>Czas pracy (min):</strong><br>
-  od <input type="number" id="time-min" style="width:60px;"> 
+  <strong>Czas pracy (min):</strong><br><small>Łączny szacowany czas arkusza.</small><br>
+  od <input type="number" id="time-min" style="width:60px;">&#x20;
   do <input type="number" id="time-max" style="width:60px;">
 </div>
-
 <div class="filter-group">
   <strong>Liczba punktów:</strong><br>
   od <input type="number" id="points-min" style="width:60px;">
   do <input type="number" id="points-max" style="width:60px;">
 </div>
-
 <div class="filter-group">
-  <strong>Liczba zadań:</strong><br>
+  <strong>Liczba zadań:</strong><br><small>Dokładnie 10: wpisz 10 w obu polach.</small><br>
   od <input type="number" id="tasks-min" style="width:60px;">
   do <input type="number" id="tasks-max" style="width:60px;">
 </div>
-
-
 </div>
-
-
-
 <div class="no-print">
   <button onclick="toggleAllTasks(true)">Zaznacz wszystkie zadania</button>
   <button onclick="toggleAllTasks(false)">Odznacz wszystkie zadania</button>
 </div>
-
-
-
-
+<p id="generator-status" class="no-print" role="status" aria-live="polite"></p>
 <div class="no-print toolbar">
   <button onclick="generate('fixed')">Generuj arkusz</button>
   <button onclick="generate('random')">Generuj losowe zadania</button>
   <button onclick="printQuick()">Drukuj arkusz</button>
 </div>
-
-
-
 <hr class="no-print">
-
-
-
 <div id="summary-box" class="no-print">
   <strong>Podsumowanie arkusza:</strong>
   <div class="sum-row">
@@ -143,19 +117,12 @@
     <span class="sum-pill">📄 Zadania:<span id="sum-tasks">–</span></span>
   </div>
 </div>
-
-
 <h1 id="custom-title" class="sheet-title"></h1>
-
 <div id="sheet-points" class="sheet-points">
 </div>
-
 <!-- ================= TU POJAWIAJĄ SIĘ ZADANIA ================= -->
 <div id="tasks"></div>
-
 <div id="print-maps-only" class="print-only"></div>
-
-
 <script>
 /* =========================================================
    DANE GLOBALNE
@@ -167,15 +134,12 @@ let ALL_TASKS = [];
 const USED_ATTACHMENTS = new Set();
 const USED_MAPS = new Set();
 let RENDER_MODE = "screen"; // "screen" | "print"
-
-
 const timeMin   = document.getElementById("time-min");
 const timeMax   = document.getElementById("time-max");
 const pointsMin = document.getElementById("points-min");
 const pointsMax = document.getElementById("points-max");
 const tasksMin  = document.getElementById("tasks-min");
 const tasksMax  = document.getElementById("tasks-max");
-
 /* =========================================================
    POMOCNICZE
 ========================================================= */
@@ -186,75 +150,59 @@ function uniqueValues(tasks, field) {
       .filter(v => v !== null && v !== undefined && v !== "")
   )];
 }
-
 function buildCheckboxes(containerId, field, values) {
   const container = document.getElementById(containerId);
   container.innerHTML = "";
-
   values.forEach(val => {
     const label = document.createElement("label");
     label.style.display = "block";
-
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
     checkbox.className = "filter";
     checkbox.dataset.field = field;
     checkbox.value = val;
     checkbox.checked = true;
-
     label.appendChild(checkbox);
     label.append(" " + val);
-
     container.appendChild(label);
   });
 }
-
 /*======================================================
 FUNKCJA: sortowanie
 =======================================================*/
 function sortTasks(tasks) {
   const mode = document.getElementById("sort-mode")?.value || "default";
-
   const copy = [...tasks]; // ⚠️ zawsze kopia
-
   switch (mode) {
     case "year-desc":
       return copy.sort((a, b) => (b.rok ?? 0) - (a.rok ?? 0));
-
     case "year-asc":
       return copy.sort((a, b) => (a.rok ?? 0) - (b.rok ?? 0));
-
     case "dzial":
       return copy.sort((a, b) =>
-        String(a.dzial).localeCompare(String(b.dzial), "pl")
+        compareDepartments([...departments(a)].sort(compareDepartments)[0], [...departments(b)].sort(compareDepartments)[0])
       );
-
     case "typ":
       return copy.sort((a, b) =>
         String(a.typ).localeCompare(String(b.typ), "pl")
       );
-
     case "shuffle":
-      return copy.sort(() => Math.random() - 0.5);
-
+      return shuffleArray(copy);
     case "default":
     default:
       return sortDefaultCKE(copy);
   }
 }
-
 function sortDefaultCKE(tasks) {
   return tasks.sort((a, b) => {
     // 1️⃣ arkusz (np. CKE_M23R_2025_maj)
     const sheetA = a.id.split("_").slice(0, 4).join("_");
     const sheetB = b.id.split("_").slice(0, 4).join("_");
     if (sheetA !== sheetB) return sheetA.localeCompare(sheetB);
-
     // 2️⃣ numer zadania (Z10, Z10_1, Z11_2 itd.)
     return extractTaskNumber(a.id) - extractTaskNumber(b.id);
   });
 }
-
 function extractTaskNumber(id) {
   const match = id.match(/Z(\d+)(?:_(\d+))?/);
   if (!match) return 999;
@@ -262,13 +210,19 @@ function extractTaskNumber(id) {
   const sub = match[2] ? Number(match[2]) / 10 : 0;
   return main + sub;
 }
-
 /*======================================================
 FUNKCJA: wstawianie attachmentów
 =======================================================*/
+// Zgodność ze strukturą folderów tej wersji GeoFinder.
+function projectPath(value) {
+ return String(value??'').replace(/\\/g,'/').replace(/(^|\/)(tasks_public|attachment_public|img_public)(?=\/)/g,(_,prefix,folder)=>prefix+folder.replace(/_public$/,''));
+}
+function normalizeAssetHTML(html) {
+ return String(html).replace(/(\b(?:src|href|poster)\s*=\s*)(["'])(.*?)\2/gi,(_,start,quote,path)=>start+quote+projectPath(path)+quote);
+}
+
 async function processAttachments(wrapper, task) {
   const placeholders = wrapper.querySelectorAll(".attachment-placeholder");
-
   for (const ph of placeholders) {
         console.log(
       "ATT PLACEHOLDER",
@@ -279,47 +233,37 @@ async function processAttachments(wrapper, task) {
       task[`${ph.dataset.att}_id`],
       task[`${ph.dataset.att}_src`]
     );
-
     const which = ph.dataset.att; // att1 / att2
     const attId   = task[`${which}_id`];
     const attSrc  = task[`${which}_src`];
-
     if (!attId || !attSrc) {
       ph.remove();
       continue;
     }
-
     if (USED_ATTACHMENTS.has(attSrc)) {
       ph.remove();
       continue;
     }
-
     try {
-      const res = await fetch(attSrc);
+      const res = await fetch(projectPath(attSrc));
       if (!res.ok) {
         console.warn("Brak attachment:", attSrc);
         ph.remove();
         continue;
       }
-
       const html = await res.text();
-      const doc = new DOMParser().parseFromString(html, "text/html");
-
+      const doc = new DOMParser().parseFromString(normalizeAssetHTML(html), "text/html");
       const block = document.createElement("div");
       block.className = "shared-attachment";
       block.innerHTML = doc.body.innerHTML;
-
       ph.replaceWith(block);
       USED_ATTACHMENTS.add(attSrc);
-
     } catch (e) {
       console.error("Błąd attachment:", attSrc, e);
       ph.remove();
     }
   }
-
 }
-
 /*======================================================
 FUNKCJA: wstawianie map
 =======================================================*/
@@ -328,33 +272,23 @@ function getMapContainer() {
     ? document.getElementById("print-maps-only")
     : document.getElementById("tasks");
 }
-
-
-
 async function insertMap(mapId, mapSrc) {
   if (USED_MAPS.has(mapId)) return;
-
   try {
-    const res = await fetch(mapSrc);
+    const res = await fetch(projectPath(mapSrc));
     if (!res.ok) return;
-
     const html = await res.text();
-    const doc = new DOMParser().parseFromString(html, "text/html");
-
+    const doc = new DOMParser().parseFromString(normalizeAssetHTML(html), "text/html");
     const page = document.createElement("div");
     page.className = "map-page-wrapper";
     page.innerHTML = doc.body.innerHTML;
-
     const target = getMapContainer(); // ⭐ TU ZAPADA DECYZJA
     target.appendChild(page);
-
     USED_MAPS.add(mapId);
   } catch (err) {
     console.error("Błąd mapy:", mapId, err);
   }
 }
-
-
 async function processMapForTask(task) {
   if (task.att1_type === "map" && task.att1_id) {
     await insertMap(task.att1_id, task.att1_src);
@@ -363,211 +297,184 @@ async function processMapForTask(task) {
     await insertMap(task.att2_id, task.att2_src);
   }
 }
-
-
 /* =========================================================
    INICJALIZACJA FILTRÓW (AUTO Z JSONA)
 ========================================================= */
 console.log("INIT FILTERS");
-
-async function initFilters() {
-  const res = await fetch("../data/tasks.json");
-  ALL_TASKS = await res.json();
-  TASK_BY_ID.clear();
-  ALL_TASKS.forEach(t => TASK_BY_ID.set(String(t.id), t));
-
-
-    buildCheckboxes("filter-zrodlo", "zrodlo", uniqueValues(ALL_TASKS, "zrodlo"));
-    buildCheckboxes("filter-formula", "formula", uniqueValues(ALL_TASKS, "formula"));
-    buildCheckboxes("filter-rok", "rok", uniqueValues(ALL_TASKS, "rok"));
-    buildCheckboxes("filter-miesiac", "miesiac", uniqueValues(ALL_TASKS, "miesiac"));
-    buildCheckboxes("filter-poziom", "poziom", uniqueValues(ALL_TASKS, "poziom"));
-    buildCheckboxes("filter-typ", "typ", uniqueValues(ALL_TASKS, "typ"));
-
-const allDzialy = [
-  ...uniqueValues(ALL_TASKS, "dzial_1"),
-  ...uniqueValues(ALL_TASKS, "dzial_2"),
-];
-
-const uniqueDzialy = [...new Set(allDzialy)];
-
-buildCheckboxes("filter-dzial", "dzial", uniqueDzialy);
+const BASIC_DEPARTMENTS=["Źródła informacji geograficznej, technologie geoinformacyjne oraz metody prezentacji danych przestrzennych", "Ziemia we Wszechświecie", "Atmosfera", "Hydrosfera", "Litosfera", "Pedosfera i biosfera", "Podział polityczny i zróżnicowanie poziomu rozwoju społeczno-gospodarczego świata", "Przemiany struktur demograficznych i społecznych oraz procesy osadnicze", "Uwarunkowania rozwoju gospodarki światowej", "Rolnictwo, leśnictwo i rybactwo", "Przemysł", "Usługi", "Człowiek a środowisko geograficzne – konflikty interesów", "Regionalne zróżnicowanie środowiska przyrodniczego Polski", "Społeczeństwo i gospodarka Polski", "Morze Bałtyckie i gospodarka morska Polski"];
+const EXTENDED_DEPARTMENTS=["Metody badań geograficznych i technologie geoinformacyjne", "Obserwacje astronomiczne i współczesne badania Wszechświata", "Dynamika procesów atmosferycznych", "Dynamika procesów hydrologicznych", "Dynamika procesów geologicznych i geomorfologicznych", "Gleby", "Współpraca i konflikty", "Zróżnicowanie struktur społecznych i procesów urbanizacyjnych", "Struktura gospodarki i tendencje rozwoju gospodarczego", "Zróżnicowanie gospodarki rolnej", "Przemiany sektora przemysłowego i budownictwa", "Rola tradycyjnych i nowoczesnych usług w rozwoju społeczno-gospodarczym", "Związki między elementami środowiska przyrodniczego na wybranych obszarach Polski", "Zróżnicowanie krajobrazowe Polski", "Zróżnicowanie społeczno-kulturowe Polski", "Elementy przestrzeni geograficznej i relacje między nimi we własnym regionie – badania i obserwacje terenowe", "Strefowość środowiska przyrodniczego na Ziemi", "Problemy środowiskowe współczesnego świata", "Uwarunkowania przyrodnicze gospodarczej działalności człowieka na przykładzie wybranych obszarów", "Problemy polityczne współczesnego świata", "Wybrane problemy społeczne współczesnego świata", "Zróżnicowanie jakości życia człowieka w wybranych regionach i krajach świata", "Problemy gospodarcze współczesnego świata"];
+// Kolejność z podstawaprogramowa.pl/Liceum-technikum/Geografia.
+function departmentKey(value) {
+ return String(value??'').normalize('NFC').toLocaleLowerCase('pl')
+ .replace(/^\s*(?:[ivxlcdm]+|\d+)\s*[.)]\s*/i,'')
+ .replace(/[–—-]/g,' ').replace(/\s+/g,' ').trim();
+}
+const DEPARTMENT_RANK=new Map([...BASIC_DEPARTMENTS,...EXTENDED_DEPARTMENTS].map((name,i)=>[departmentKey(name),i]));
+function departmentRank(name) {return DEPARTMENT_RANK.get(departmentKey(name))??Infinity;}
+function compareDepartments(a,b) {
+ const ra=departmentRank(a),rb=departmentRank(b);
+ return (ra===rb?0:ra<rb?-1:1)||String(a).localeCompare(String(b),'pl',{numeric:true});
+}
+function buildDepartmentList(values) {
+ const container=document.getElementById('filter-dzial');
+ buildCheckboxes('filter-dzial','dzial',[...new Set(values)].sort(compareDepartments));
+ let previous='';
+ for(const label of [...container.children]) {
+ const rank=departmentRank(label.querySelector('input').value);
+ const group=rank<BASIC_DEPARTMENTS.length?'Zakres podstawowy':Number.isFinite(rank)?'Zakres rozszerzony':'Pozostałe działy z bazy';
+ label.dataset.departmentGroup=group;
+ if(group!==previous) {
+ const title=document.createElement('h4');title.textContent=group;title.style.cssText='margin:12px 0 6px;font-size:13px';
+ title.dataset.departmentHeading=group;container.insertBefore(title,label);previous=group;
+ }
+ }
 }
 
-initFilters();
+function departments(t) {
+ const values=[t.dzial_1,t.dzial_2,t.dzial];
+ return [...new Set(values.flatMap(v=>Array.isArray(v)?v:String(v??'').split(';')).map(v=>String(v).trim()).filter(Boolean))];
+}
+function source(t) {return String(t.zrodlo ?? t.zrodlo_text ?? t.zrodlo_key ?? '').trim();}
+const FILTER_FIELDS=['zrodlo','formula','rok','miesiac','poziom','typ','dzial'];
+function status(message) {document.getElementById('generator-status').textContent=message;}
+function updateDepartments() {
+ const all=[...document.querySelectorAll('#filter-dzial .filter')];
+ const n=all.filter(c=>c.checked).length;
+ document.getElementById('department-summary').textContent=n===all.length?'Działy: wszystkie':`Działy: wybrano ${n} z ${all.length}`;
+}
+function setDepartments(state) {document.querySelectorAll('#filter-dzial .filter').forEach(c=>c.checked=state);updateDepartments();}
+document.getElementById('department-search').addEventListener('input',e=>{
+ const q=e.target.value.toLocaleLowerCase('pl');
+ document.querySelectorAll('#filter-dzial label').forEach(l=>{l.style.setProperty('display',l.textContent.toLocaleLowerCase('pl').includes(q)?'flex':'none','important');});
+ document.querySelectorAll('[data-department-heading]').forEach(h=>{h.hidden=![...document.querySelectorAll('#filter-dzial label')].some(l=>l.dataset.departmentGroup===h.dataset.departmentHeading&&l.style.display!=='none');});
+});
+document.getElementById('filter-dzial').addEventListener('change',updateDepartments);
+async function initFilters() {
+ status('Wczytywanie bazy…');
+ const res=await fetch('../data/tasks.json',{cache:'no-store'});
+ if(!res.ok) throw new Error(`Nie można wczytać ../data/tasks.json (HTTP ${res.status}).`);
+ const data=await res.json();
+ if(!Array.isArray(data)) throw new Error('Baza tasks.json musi zawierać tablicę zadań.');
+ ALL_TASKS=[...new Map(data.filter(t=>t && t.id!=null).map(t=>[String(t.id),{...t,zrodlo:source(t)}])).values()];
+ TASK_BY_ID.clear();ALL_TASKS.forEach(t=>TASK_BY_ID.set(String(t.id),t));
+ for(const field of FILTER_FIELDS) {
+ const values=field==='dzial'?[...new Set(ALL_TASKS.flatMap(departments))]:uniqueValues(ALL_TASKS,field).map(String);
+ if(field==='dzial') buildDepartmentList(values);
+ else buildCheckboxes('filter-'+field,field,[...new Set(values)].sort((a,b)=>a.localeCompare(b,'pl',{numeric:true})));
+ }
+ updateDepartments();status(`Wczytano ${ALL_TASKS.length} zadań.`);
+}
+const READY=initFilters().catch(e=>{status(e.message);throw e;});
+READY.catch(()=>{});
 
 /* =========================================================
    FILTRY
 ========================================================= */
-
 function matches(task, filters) {
-  return Object.entries(filters).every(([field, allowed]) => {
-
-    // 🔹 SPECJALNY PRZYPADEK: DZIAŁ (dzial_1 LUB dzial_2)
-if (field === "dzial") {
-  const dzialyZadania = [task.dzial_1, task.dzial_2].filter(Boolean);
-
-  // ✅ jeśli filtr DZIAŁ jest aktywny,
-  // a zadanie nie ma żadnego działu → ODRZUĆ
-  if (dzialyZadania.length === 0) return false;
-
-  // OR: wystarczy jeden wspólny
-  return dzialyZadania.some(d =>
-    allowed.includes(String(d))
-  );
+ return Object.entries(filters).every(([field,allowed])=>{
+ const all=[...document.querySelectorAll(`.filter[data-field="${field}"]`)];
+ if(allowed.length===all.length) return true;
+ if(!allowed.length) return false;
+ const values=field==='dzial'?departments(task):[String(task[field]??'')];
+ return values.some(v=>allowed.includes(v));
+ });
 }
-
-    // 🔹 NORMALNE POLA
-    if (
-      task[field] === undefined ||
-      task[field] === null ||
-      task[field] === ""
-    ) {
-      return true;
-    }
-
-    return allowed.includes(String(task[field]));
-  });
-}
-
 function getActiveFilters() {
-  const filters = {};
-
-  document.querySelectorAll(".filter:checked").forEach(el => {
-    const field = el.dataset.field;
-    filters[field] ??= [];
-    filters[field].push(String(el.value));
-  });
-
-  return filters;
+ const filters={};
+ document.querySelectorAll('.filter').forEach(el=>{filters[el.dataset.field]??=[];if(el.checked)filters[el.dataset.field].push(String(el.value));});
+ return filters;
 }
-
-function toggleAllFilters(state) {
-  document.querySelectorAll(".filter").forEach(cb => {
-    cb.checked = state;
-  });
-}
+function toggleAllFilters(state) {document.querySelectorAll('.filter').forEach(cb=>cb.checked=state);updateDepartments();}
 
 function toggleAllTasks(state) {
   document.querySelectorAll(".task-select").forEach(cb => {
     cb.checked = state;
-
     const id = cb.dataset.taskId;
     if (!id) return;
-
     if (state) CURRENT_SELECTION.add(id);
     else CURRENT_SELECTION.delete(id);
   });
-  
   updateSummaryFromSelection();
-
 }
 /* =========================================================
    placeholdery
 ========================================================= */
-
-
 function processMeta(wrapper, task) {
   wrapper.querySelectorAll(".meta-placeholder").forEach(ph => {
     const type = ph.dataset.meta;
-
     switch (type) {
       case "zrodlo":
         ph.textContent = task.zrodlo ?? "";
         break;
-
       case "l_pkt":
         ph.textContent = task.l_pkt ? `${task.l_pkt} pkt` : "";
         break;
-
       case "kompetencje":
         const kompetencje = [
           task.kompetencja_1,
           task.kompetencja_2
         ].filter(Boolean);
-
         ph.textContent = kompetencje.join("; ");
         break;
     }
   });
 }
-
 /* =========================================================
 zliczanie pkt
 ========================================================= */
-
 function calculateSelectedPoints() {
   let sum = 0;
-
   document.querySelectorAll(".task").forEach(task => {
     const cb = task.querySelector(".task-select");
     if (!cb || !cb.checked) return;
-
     const pktEl = task.querySelector('.meta-placeholder[data-meta="l_pkt"]');
     if (!pktEl) return;
-
     const num = parseFloat(
       pktEl.textContent.replace(",", ".").replace(/[^\d.]/g, "")
     );
-
     if (!isNaN(num)) sum += num;
   });
-
   return sum;
 }
-
 function updateSummaryFromSelection() {
   let taskCount  = 0;
   let pointsSum  = 0;
   let timeMinSum = 0;
   let timeMaxSum = 0;
-
   // liczymy tylko w obrębie aktualnie wygenerowanego arkusza
   for (const t of CURRENT_TASKS) {
     if (!CURRENT_SELECTION.has(String(t.id))) continue;
-
     taskCount++;
-
     const p = Number(t.l_pkt) || 0;
     const tMin = Number(t.czas_min) || 0;
     const tMax = Number(t.czas_max) || tMin;
-
     pointsSum  += p;
     timeMinSum += tMin;
     timeMaxSum += tMax;
   }
-
   updateSummary(taskCount, pointsSum, timeMinSum, timeMaxSum);
 }
-
-
 /* =========================================================
 wybór zadań wg kryteriów
 ========================================================= */
-
 function selectTasksWithConstraints(tasks, constraints) {
   const {
     minTime,
     maxTime
   } = constraints;
-
   let selected = [];
   let timeSumMin = 0;
   let timeSumMax = 0;
-
   for (const task of tasks) {
     const tMin = Number(task.czas_min) || 0;
     const tMax = Number(task.czas_max) || tMin;
-
     // sprawdzamy, czy dodanie zadania NIE rozwali limitu
     if (timeSumMax + tMin > maxTime) {
       continue;
     }
-
     selected.push(task);
     timeSumMin += tMin;
     timeSumMax += tMax;
-
     // jeżeli już jesteśmy w przedziale → STOP
     if (
       (minTime > 0 || maxTime < Infinity) &&
@@ -577,85 +484,61 @@ function selectTasksWithConstraints(tasks, constraints) {
       break;
     }
   }
-
   return selected;
 }
-
 function rand(min, max) {
   if (max === Infinity) return Infinity;
   if (min === max) return min;
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
-
 function moveMapsForPrint() {
   const printBox = document.getElementById("print-maps-only");
   if (!printBox) return;
-
   printBox.innerHTML = "";
-
   document.querySelectorAll(".map-page-wrapper[data-map-type='cke']")
     .forEach(map => {
       printBox.appendChild(map.cloneNode(true));
     });
 }
-
-
 /*-----------------------------------------
 Renderowanie zadań
------------------------------------------*/
-
+\-----------------------------------------*/
 async function renderTask(task) {
-  
   const container = document.getElementById("tasks");
-
   await processMapForTask(task); // ⬅️ MAPA NAJPIERW
-
-  const res = await fetch(task.html);
-  if (!res.ok) return;
-
+  const res = await fetch(projectPath(task.html));
+  if (!res.ok) throw new Error(`Brak HTML: ${task.html} (HTTP ${res.status})`);
   const html = await res.text();
-  const doc = new DOMParser().parseFromString(html, "text/html");
-
+  const doc = new DOMParser().parseFromString(normalizeAssetHTML(html), "text/html");
   const wrapper = document.createElement("div");
   wrapper.className = "task";
   wrapper.innerHTML = doc.body.innerHTML;
   wrapper.dataset.taskId = task.id;   // <-- DODAJ
-
-
   const cb = document.createElement("input");
   cb.type = "checkbox";
   cb.className = "task-select no-print";
   cb.dataset.taskId = task.id;
   cb.checked = CURRENT_SELECTION.has(String(task.id));
   wrapper.prepend(cb);
-
   await processAttachments(wrapper, task);
   processMeta(wrapper, task);
-
   container.appendChild(wrapper);
 }
-
 // ✅ JEDNO miejsce aktualizacji selection – działa zawsze
 document.getElementById("tasks").addEventListener("change", (e) => {
   const cb = e.target;
   if (!cb.classList.contains("task-select")) return;
-
   const id = cb.dataset.taskId;
   if (!id) return;
-
   if (cb.checked) CURRENT_SELECTION.add(id);
   else CURRENT_SELECTION.delete(id);
-  
   updateSummaryFromSelection();
-
 });
-
 document.addEventListener("input", (e) => {
   if (e.target && e.target.id === "sheet-title") {
     updateSheetTitle();
   }
 });
-
 function syncSelectionFromDOM() {
   const ids = new Set();
   document.querySelectorAll(".task-select").forEach(cb => {
@@ -663,7 +546,6 @@ function syncSelectionFromDOM() {
   });
   CURRENT_SELECTION = ids;
 }
-
 function renumberTasksForPrint() {
   let i = 1;
   document.querySelectorAll(".task:not(.skip-print)").forEach(task => {
@@ -674,41 +556,33 @@ function renumberTasksForPrint() {
     }
   });
 }
-
 /* --------------------------------
 Update dla podsuowania
----------------------------------------------*/
-
+\---------------------------------------------*/
 function updateSummary(taskCount, pointsSum, timeMinSum, timeMaxSum) {
   const timeEl   = document.getElementById("sum-time");
   const pointsEl = document.getElementById("sum-points");
   const tasksEl  = document.getElementById("sum-tasks");
-
   if (timeEl) {
     timeEl.textContent =
       timeMinSum === timeMaxSum
         ? `${timeMinSum}`
         : `${timeMinSum}–${timeMaxSum}`;
   }
-
   if (pointsEl) pointsEl.textContent = pointsSum;
   if (tasksEl)  tasksEl.textContent  = taskCount;
 }
-
-
 /* --------------------------------
 Czy są aktywne filtry
----------------------------------------------*/
+\---------------------------------------------*/
 function hasActiveFilters() {
   const allFilters = document.querySelectorAll(".filter");
   const checked    = document.querySelectorAll(".filter:checked");
-
   return checked.length !== allFilters.length;
 }
-
 /* --------------------------------
 Czy są aktywne filtry
----------------------------------------------*/
+\---------------------------------------------*/
 function shuffleArray(arr) {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -717,78 +591,63 @@ function shuffleArray(arr) {
   }
   return a;
 }
-
 /* --------------------------------
 puste filtry
----------------------------------------------*/
+\---------------------------------------------*/
 function isEmpty(val) {
   return val === null || val === undefined || val === "";
 }
-
 //moZ4 b4rzie dzialac losowanie
-
-
-function readRange(minEl, maxEl) {
-  const minRaw = minEl.value.trim();
-  const maxRaw = maxEl.value.trim();
-
-  const empty = (minRaw === "" && maxRaw === "");
-
-  // NIC NIE WPISANE
-  if (empty) {
-    return { min: 0, max: Infinity, random: true, empty: true };
-  }
-
-  // MIN i MAX wpisane → losuj
-  if (minRaw !== "" && maxRaw !== "") {
-    const min = Number(minRaw);
-    const max = Number(maxRaw);
-
-    const a = Number.isFinite(min) ? min : 0;
-    const b = Number.isFinite(max) ? max : a;
-
-    return {
-      min: Math.min(a, b),
-      max: Math.max(a, b),
-      random: true,
-      empty: false
-    };
-  }
-
-  // Tylko jedna granica → bez losowania
-  const min = (minRaw === "") ? 0 : Number(minRaw);
-  const max = (maxRaw === "") ? Infinity : Number(maxRaw);
-
-  return {
-    min: Number.isFinite(min) ? min : 0,
-    max: Number.isFinite(max) ? max : Infinity,
-    random: false,
-    empty: false
-  };
+function readRange(minEl,maxEl) {
+ const a=minEl.value.trim(),b=maxEl.value.trim();
+ const min=a===''?0:Number(a),max=b===''?Infinity:Number(b);
+ if(!Number.isFinite(min)||min<0||Number.isNaN(max)||max<0||min>max) throw new Error('Podaj poprawny zakres: od nie może być większe niż do.');
+ return {min,max,empty:a===''&&b===''};
 }
-
-
+// Limity czasu dotyczą całego przedziału szacowanego: suma min >= od, suma max <= do.
+function chooseTasks(pool,count,points,time) {
+ const n=pool.length;
+ if(count.min>n) throw new Error(`Filtry pozostawiają ${n} zadań, a wymagane minimum to ${count.min}.`);
+ const max=Math.min(count.max,n);
+ const stats=t=>{const p=Number(String(t.l_pkt??0).replace(',','.'))||0;
+ const lo=Number(String(t.czas_min??0).replace(',','.'))||0;
+ const hi=Number(String(t.czas_max??lo).replace(',','.'))||lo;
+ return {p,lo,hi:Math.max(lo,hi)};};
+ const valid=x=>x.ids.length>=count.min&&x.ids.length<=max&&x.p>=points.min&&x.p<=points.max&&x.lo>=time.min&&x.hi<=time.max;
+ if(points.empty&&time.empty) return pool.slice(0,max);
+ let states=[{ids:[],p:0,lo:0,hi:0}];
+ for(let i=0;i<n;i++) {
+ const t=stats(pool[i]),next=new Map();
+ for(const state of states) {
+ const options=[state];
+ if(state.ids.length<max&&state.p+t.p<=points.max&&state.hi+t.hi<=time.max)
+ options.push({ids:[...state.ids,i],p:state.p+t.p,lo:state.lo+t.lo,hi:state.hi+t.hi});
+ for(const x of options) {
+ if(valid(x)) return x.ids.map(j=>pool[j]);
+ if(x.ids.length+n-i-1<count.min) continue;
+ const key=[x.ids.length,x.p,x.lo,x.hi].join('|');if(!next.has(key))next.set(key,x);
+ }
+ }
+ states=[...next.values()];
+ if(states.length>50000) throw new Error('Zbyt wiele kombinacji ograniczeń. Zawęź filtry lub uprość zakres punktów/czasu.');
+ }
+ throw new Error('Nie znaleziono zestawu spełniającego wszystkie zakresy. Zmień liczbę zadań, punkty, czas lub filtry.');
+}
 
 function updateSheetTitle() {
   const input = document.getElementById("sheet-title");
   const out   = document.getElementById("custom-title");
-
   if (!input || !out) return;
-
   const val = input.value.trim();
   out.textContent = val;
   out.style.display = val ? "block" : "none";
 }
-
 /* --------------------------------
 Generator
----------------------------------------------*/
-
-
+\---------------------------------------------*/
 function updatePrintMode() {
   const checkbox = document.getElementById("print-solutions");
   if (!checkbox) return;
-
   if (checkbox.checked) {
     document.body.classList.add("print-solutions");
     document.querySelectorAll("details.solution").forEach(d => d.open = true);
@@ -797,126 +656,50 @@ function updatePrintMode() {
     document.querySelectorAll("details.solution").forEach(d => d.open = false);
   }
 }
-
 document.addEventListener("change", e => {
   if (e.target.id === "print-solutions") {
     updatePrintMode();
   }
 });
-
 window.addEventListener("beforeprint", updatePrintMode);
-
-async function generate(mode = "fixed") {
-  const isRandom = mode === "random";
-
-  // reset renderu
-  document.getElementById("tasks").innerHTML = "";
-  if (RENDER_MODE === "print") {
-    document.getElementById("print-maps-only").innerHTML = "";
-  }
-  USED_ATTACHMENTS.clear();
-  USED_MAPS.clear();
-
-  // zakresy
-  const timeRange   = readRange(timeMin, timeMax);
-  const pointsRange = readRange(pointsMin, pointsMax);
-  const tasksRange  = readRange(tasksMin, tasksMax);
-
-  // ✅ DOMYŚLNE zachowanie: jeśli RANDOM i WSZYSTKO puste → losuj sensowną liczbę zadań
-  // (to naprawia “nic nie wpisane i nie losuje jak trzeba” / “bierze całą bazę”)
-  const DEFAULT_RANDOM_TASKS_MIN = 6;
-  const DEFAULT_RANDOM_TASKS_MAX = 12;
-
-  // cele
-  let targetTasks;
-  let targetPoints;
-  let targetTime;
-
-  if (isRandom && tasksRange.empty && pointsRange.empty && timeRange.empty) {
-    targetTasks  = rand(DEFAULT_RANDOM_TASKS_MIN, DEFAULT_RANDOM_TASKS_MAX);
-    targetPoints = Infinity;
-    targetTime   = Infinity;
-  } else {
-    // zadania
-    if (isRandom && tasksRange.random && !tasksRange.empty) {
-      targetTasks = rand(tasksRange.min, tasksRange.max);
-    } else {
-      // fixed albo jedna granica → traktuj jako limit max
-      targetTasks = tasksRange.max;
-    }
-
-    // punkty
-    if (isRandom && pointsRange.random && !pointsRange.empty) {
-      targetPoints = rand(pointsRange.min, pointsRange.max);
-    } else {
-      targetPoints = pointsRange.max;
-    }
-
-    // czas
-    if (isRandom && timeRange.random && !timeRange.empty) {
-      targetTime = rand(timeRange.min, timeRange.max);
-    } else {
-      targetTime = timeRange.max;
-    }
-  }
-
-  // pula
-  let pool = (isRandom && !hasActiveFilters())
-    ? [...ALL_TASKS]
-    : ALL_TASKS.filter(t => matches(t, getActiveFilters()));
-
-  if (!pool.length) return;
-
-  // porządek puli
-  if (isRandom) pool = shuffleArray(pool);
-  else pool = sortTasks(pool);
-
-  // wybór
-  const picked = [];
-  let taskCount  = 0;
-  let pointsSum  = 0;
-  let timeMinSum = 0;
-  let timeMaxSum = 0;
-
-  for (const task of pool) {
-    // ✅ NAJWAŻNIEJSZY HAMULEC – liczba zadań
-    if (taskCount >= targetTasks) break;
-
-    const p    = Number(task.l_pkt) || 0;
-    const tMin = Number(task.czas_min) || 0;
-    const tMax = Number(task.czas_max) || tMin;
-
-    // limity (Infinity nie przeszkadza)
-    if (pointsSum + p > targetPoints) continue;
-    if (timeMinSum + tMin > targetTime) continue;
-
-    picked.push(task);
-
-    taskCount++;
-    pointsSum  += p;
-    timeMinSum += tMin;
-    timeMaxSum += tMax;
-  }
-
-  // finalna kolejność w arkuszu
-  const sortedPicked = sortTasks(picked);
-
-  // stan do druku/checkboxów
-  CURRENT_TASKS = [...sortedPicked];
-  CURRENT_SELECTION = new Set(sortedPicked.map(t => String(t.id)));
-
-  // render
-  for (const task of sortedPicked) {
-    await renderTask(task);
-  }
-
-  // ✅ poprawione podsumowanie (wcześniej dawałaś timeMinSum dwa razy)
-  updateSheetTitle();
-  updateSummaryFromSelection();
-  updatePrintMode();
+let generating=false;
+async function generate(mode='fixed') {
+ if(generating)return;
+ generating=true;
+ const buttons=[...document.querySelectorAll('.toolbar button')];buttons.forEach(b=>b.disabled=true);
+ try {
+ await READY;
+ const time=readRange(timeMin,timeMax),points=readRange(pointsMin,pointsMax),count=readRange(tasksMin,tasksMax);
+ if(!Number.isInteger(count.min)||(Number.isFinite(count.max)&&!Number.isInteger(count.max))) throw new Error('Liczba zadań musi być całkowita.');
+ const filters=getActiveFilters();let pool=ALL_TASKS.filter(t=>matches(t,filters));
+ if(!pool.length)throw new Error('Brak zadań dla zaznaczonych filtrów.');
+ const random=mode==='random';pool=random?shuffleArray(pool):sortTasks(pool);
+ if(count.empty&&points.empty&&time.empty&&random) {count.min=count.max=rand(Math.min(6,pool.length),Math.min(12,pool.length));}
+ else if(random&&!count.empty) {
+ const lo=Math.max(1,count.min),hi=Math.min(count.max,pool.length);
+ if(lo>hi)throw new Error(`Dostępnych jest ${pool.length} zadań — za mało dla podanego zakresu.`);
+ // Wybierz losową wykonalną liczebność, zamiast po cichu skracać zestaw.
+ const sizes=shuffleArray(Array.from({length:hi-lo+1},(_,i)=>lo+i));
+ let picked=null,lastError;
+ for(const size of sizes) {try {picked=chooseTasks(pool,{min:size,max:size},points,time);break;}catch(e){lastError=e;}}
+ if(!picked)throw lastError;
+ await showPicked(picked);return;
+ }
+ await showPicked(chooseTasks(pool,count,points,time));
+ } catch(e) {status(e.message);}
+ finally {generating=false;buttons.forEach(b=>b.disabled=false);}
 }
-
-
+async function showPicked(picked) {
+ if(!picked.length)throw new Error('Wybrany zakres daje pusty arkusz.');
+ const sorted=sortTasks(picked);
+ document.getElementById('tasks').innerHTML='';document.getElementById('print-maps-only').innerHTML='';
+ USED_ATTACHMENTS.clear();USED_MAPS.clear();RENDER_MODE='screen';
+ CURRENT_TASKS=[];CURRENT_SELECTION=new Set(sorted.map(t=>String(t.id)));
+ let failures=0;
+ for(const task of sorted) {try{await renderTask(task);CURRENT_TASKS.push(task);}catch(e){failures++;CURRENT_SELECTION.delete(String(task.id));console.error(e);}}
+ updateSheetTitle();updateSummaryFromSelection();updatePrintMode();
+ status(`Wygenerowano ${CURRENT_TASKS.length} zadań.`+(failures?` Nie wczytano ${failures} plików HTML — sprawdź ścieżki w bazie.`:''));
+}
 
 function applyPrintSelection() {
   document.querySelectorAll(".task").forEach(task => {
@@ -928,7 +711,6 @@ function applyPrintSelection() {
     }
   });
 }
-
 async function printAr() {
   if (!CURRENT_TASKS.length) {
     alert("Najpierw wygeneruj arkusz.");
@@ -936,72 +718,51 @@ async function printAr() {
   }
   updateSheetTitle();       // żeby tytuł był zawsze aktualny
   syncSelectionFromDOM();   // żeby brało ręczne odznaczenia
-
   document.body.classList.add("print-classwork");  // <<< TO
-
   RENDER_MODE = "print";
-
   document.getElementById("tasks").innerHTML = "";
   document.getElementById("print-maps-only").innerHTML = "";
   USED_ATTACHMENTS.clear();
   USED_MAPS.clear();
-
   // 🔹 renderujemy TYLKO zaznaczone
   for (const task of CURRENT_TASKS) {
   if (CURRENT_SELECTION.has(String(task.id))) {
       await renderTask(task);
     }
   }
-
   renumberTasksForPrint();
-
   const total = calculateSelectedPoints();
   document.getElementById("sheet-points").textContent =
     `Łącznie:_____________ / ${total} pkt`;
-
   setTimeout(() => window.print(), 150);
-
   RENDER_MODE = "screen";
-  
   document.body.classList.remove("print-classwork"); // <<< I TO
-
 }
 async function printQuick() {
   if (!CURRENT_TASKS.length) {
     alert("Najpierw wygeneruj arkusz.");
     return;
   }
-
   updateSheetTitle();
   syncSelectionFromDOM();
-
   // UWAGA: tu NIE dodajemy print-classwork
   RENDER_MODE = "print";
-
   document.getElementById("tasks").innerHTML = "";
   document.getElementById("print-maps-only").innerHTML = "";
   USED_ATTACHMENTS.clear();
   USED_MAPS.clear();
-
   for (const task of CURRENT_TASKS) {
     if (CURRENT_SELECTION.has(String(task.id))) {
       await renderTask(task);
     }
   }
-
   // brak renumberTasksForPrint() -> zostają oryginalne nagłówki
-
   const total = calculateSelectedPoints();
   document.getElementById("sheet-points").textContent =
     `Łącznie:_____________ / ${total} pkt`;
-
   setTimeout(() => window.print(), 150);
-
   RENDER_MODE = "screen";
 }
-
-
-
 </script>
 </body>
 </html>

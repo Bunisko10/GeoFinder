@@ -3,180 +3,216 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>GeoFinder – Menedżer zadań</title>
+  <title>GeoFinder – Edytuj zadanie</title>
   <link rel="stylesheet" href="meneger.css">
 </head>
-
 <body>
-  <header class="topbar">
-    <h1>🗃️ Menedżer zadań GeoFinder</h1>
 
-    <nav class="tabs" role="tablist">
-      <button class="tab" id="tab-edit" role="tab" aria-selected="false" data-tab="edit">✏️ Edytuj</button>
-    </nav>
-  </header>
+<h1>✏️ Edytuj istniejące zadanie</h1>
 
-  <!-- =================== DODAJ =================== -->
-  
-  <!-- =================== EDYTUJ =================== -->
-  <section id="panel-edit" class="panel" role="tabpanel" aria-labelledby="tab-edit">
+<!-- ===== KROK 1: wybór ===== -->
+<fieldset class="card">
+  <legend>1. Wybierz zadanie</legend>
+
+  <div class="row">
+    <label>
+      Baza
+      <span>Ogólna — data/tasks.json</span>
+    </label>
+
+    <button type="button" id="refresh-list">🔄 Odśwież listę</button>
+  </div>
+
+  <label>
+    Lista zadań
+    <select id="task-pick" size="10"></select>
+  </label>
+
+  <div class="row">
+    <button type="button" id="load-task" class="primary">📥 Wczytaj</button>
+    <button type="button" id="open-html">🌐 Otwórz HTML</button>
+  </div>
+
+  <p class="hint">Po wczytaniu pola niżej uzupełnią się automatycznie.</p>
+</fieldset>
+
+<!-- ===== KROK 2: banner (co edytujesz) ===== -->
+<div id="edit-banner" class="banner" style="display:none;">
+  <div>
+    <strong>Edytujesz:</strong> <span id="edit-id"></span>
+    <span class="muted">• po zapisaniu nadpiszesz istniejące zadanie</span>
+  </div>
+  <button type="button" id="reset-form" class="ghost">🧽 Wyczyść formularz</button>
+</div>
+
+<!-- ===== KROK 3: META (to samo co w dodawaniu, tylko bez generowania nowego id) ===== -->
+<form id="edit-form">
+  <fieldset class="grid card">
+    <legend>2. Metadane</legend>
+
+    <label>Źródło
+      <select id="zrodlo_select">
+        <option value="CKE_M">Matury CKE</option>
+        <option value="CKE_I">Informator CKE</option>
+        <option value="CKE_P">Matury próbne CKE</option>
+        <option value="STU">Zadania od M.S.</option>
+        <option value="BOL">Zbiór Zadań Bolesławiec</option>
+        <option value="NER_M">Matury próbne Nowa Era</option>
+        <option value="OPE_M">Matury próbne Operon</option>
+        <option value="NER">Zbiory Nowa Era</option>
+        <option value="OPE">Zbiory Operon</option>
+        <option value="AUT">autorskie</option>
+        <option value="INN">inne</option>
+      </select>
+    </label>
+
+    <label>Dopisek (opcjonalnie)
+      <input type="text" id="zrodlo_other" placeholder="np. Zbiory własne">
+    </label>
+
+    <label>Formuła
+      <select id="formula">
+        <option value="null">brak danych</option>
+        <option value="2005">2005</option>
+        <option value="2015">2015</option>
+        <option value="2023">2023</option>
+      </select>
+    </label>
+
+    <label>Poziom
+      <select id="poziom">
+        <option value="null">brak danych</option>
+        <option value="Podstawowy">Podstawowy</option>
+        <option value="Rozszerzony">Rozszerzony</option>
+      </select>
+    </label>
+
+    <label>Rok <input type="number" id="rok"></label>
+    <label>Miesiąc <input type="text" id="miesiac"></label>
+    <label>Punkty <input type="number" id="l_pkt"></label>
+    <label>Numer zadania <input type="text" id="nr_zad"></label>
+    <label>Strona <input type="number" id="strona"></label>
+  </fieldset>
+
+  <fieldset class="grid card">
+    <legend>3. Klasyfikacja</legend>
+
+    <label>Dział 1
+      <input type="text" id="dzial_1" list="dzial_list">
+      <datalist id="dzial_list"></datalist>
+    </label>
+
+    <label>Dział 2
+      <input type="text" id="dzial_2" list="dzial_list">
+    </label>
+
+    <label>Zagadnienie
+      <input type="text" id="zagadnienie" list="zagadnienie_list">
+      <datalist id="zagadnienie_list"></datalist>
+    </label>
+
+    <label>Typ
+      <select id="typ">
+        <option value="wyjaśnij">wyjaśnij</option>
+        <option value="calc">oblicz</option>
+        <option value="zaznacz">zaznacz</option>
+        <option value="dopasuj">dopasuj</option>
+        <option value="uzasadnij">uzasadnij</option>
+        <option value="tabela">tabela</option>
+        <option value="pf">prawda/fałsz</option>
+        <option value="wypisz">wypisz/podaj</option>
+      </select>
+    </label>
+  </fieldset>
+
+  <fieldset class="grid card">
+    <legend>4. Kompetencje</legend>
+
+    <label>Kompetencja 1
+      <input type="text" id="kompetencja_1" list="kompetencje_list">
+      <datalist id="kompetencje_list"></datalist>
+    </label>
+
+    <label>Kompetencja 2
+      <input type="text" id="kompetencja_2" list="kompetencje_list">
+    </label>
+  </fieldset>
+
+  <!-- ===== Treść ===== -->
+  <fieldset class="card tresc">
+    <legend>5. Treść zadania</legend>
+
+    <div class="block-bar">
+      <strong>Dodaj blok:</strong>
+      <button type="button" data-add="opis">Opis</button>
+      <button type="button" data-add="polecenie">Polecenie</button>
+      <button type="button" data-add="lines">Linie</button>
+      <button type="button" data-add="list">Lista</button>
+      <button type="button" data-add="table">Tabela</button>
+      <button type="button" data-add="pf">P/F</button>
+      <button type="button" data-add="luki">Luki</button>
+      <button type="button" data-add="calc">Obliczenia</button>
+      <button type="button" data-add="abcd">ABCD</button>
+      <button type="button" data-add="att1">Załącznik 1</button>
+      <button type="button" data-add="att2">Załącznik 2</button>
+    </div>
+
+    <h3>Podgląd zadania</h3>
+<div id="preview" class="preview"></div>
+
+<h3>Edytuj treść (jak w Wordzie)</h3>
+<div id="edit-body" class="task-editor" contenteditable="true"></div>
+
+<h3>Edytuj rozwiązanie</h3>
+<div id="edit-solution" class="solution-editor" contenteditable="true"></div>
+
+<details class="card">
+  <summary>Tryb zaawansowany (HTML)</summary>
+  <label>Treść (HTML)
+    <textarea id="edit-body-html" rows="16"></textarea>
+  </label>
+  <label>Rozwiązanie (HTML)
+    <textarea id="edit-solution-html" rows="10"></textarea>
+  </label>
+</details>
+
+
+ 
+
+  <!-- ===== Załączniki: tylko podmiana ===== -->
+  <fieldset class="card zal">
+    <legend>6. Załączniki</legend>
+
     <p class="hint">
-      Tryb edycji: wybierz zadanie z listy → wczytaj → edytuj → zapisz jako nową wersję albo nadpisz (później).
+      Jeśli nie wybierzesz nowego pliku – załącznik zostanie bez zmian.
     </p>
 
-    <fieldset class="card">
-      <legend>🔎 Wybór zadania</legend>
-
-      <div class="row">
-        <label>
-          Źródło listy
-          <select id="edit-source">
-            <option value="private" selected>tasks_private.json</option>
-            <option value="public">tasks.json</option>
-          </select>
-        </label>
-
-        <button type="button" id="refresh-list">🔄 Odśwież listę</button>
+    <div class="row">
+      <div class="card mini">
+        <strong>att1</strong>
+        <div class="muted" id="current-att1"></div>
+        <input type="file" id="att1_file" accept=".png,.jpg,.jpeg,.webp,.html">
+        <input type="text" id="att1_desc" placeholder="ALT/podpis">
+        <textarea id="att1_intro" rows="3" placeholder="Wstęp (task-intro)"></textarea>
       </div>
 
-      <label>
-        Zadanie
-        <select id="task-pick" size="12"></select>
-      </label>
-
-      <div class="row">
-        <button type="button" id="load-task">📥 Wczytaj do edytora</button>
-        <button type="button" id="open-html">🌐 Otwórz HTML w nowej karcie</button>
+      <div class="card mini">
+        <strong>att2</strong>
+        <div class="muted" id="current-att2"></div>
+        <input type="file" id="att2_file" accept=".png,.jpg,.jpeg,.webp,.html">
+        <input type="text" id="att2_desc" placeholder="ALT/podpis">
+        <textarea id="att2_intro" rows="3" placeholder="Wstęp (task-intro)"></textarea>
       </div>
-    </fieldset>
+    </div>
+  </fieldset>
 
-    <fieldset class="card">
-      <legend>🧩 Edytor (wersja robocza)</legend>
-
-      <p class="hint">
-        Na razie: wczytujemy rekord + ścieżkę HTML. Potem podpinamy pełny edytor bloków.
-      </p>
-
-      <label>ID
-        <input type="text" id="edit-id" readonly>
-      </label>
-
-      <label>Podgląd rekordu (JSON)
-        <textarea id="edit-json" rows="10" spellcheck="false"></textarea>
-      </label>
-
-      <div class="row">
-        <button type="button" id="copy-json">📋 Kopiuj JSON</button>
-        <button type="button" id="start-new-from">🧬 Skopiuj do trybu "Dodaj"</button>
-      </div>
-    </fieldset>
-  </section>
-
-  <script>
-    // ===== TABS =====
-    const tabs = document.querySelectorAll(".tab");
-    const panels = {
-      add: document.getElementById("panel-add"),
-      edit: document.getElementById("panel-edit"),
-    };
-
-    tabs.forEach(btn => {
-      btn.addEventListener("click", () => {
-        tabs.forEach(b => b.classList.remove("is-active"));
-        btn.classList.add("is-active");
-
-        const key = btn.dataset.tab;
-        Object.values(panels).forEach(p => p.classList.remove("is-active"));
-        panels[key].classList.add("is-active");
-
-        tabs.forEach(b => b.setAttribute("aria-selected", String(b === btn)));
-      });
-    });
-
-    // ===== EDIT: list loading =====
-    const pick = document.getElementById("task-pick");
-    const srcSel = document.getElementById("edit-source");
-    const refreshBtn = document.getElementById("refresh-list");
-    const loadBtn = document.getElementById("load-task");
-    const openBtn = document.getElementById("open-html");
-
-    const editId = document.getElementById("edit-id");
-    const editJson = document.getElementById("edit-json");
-    const copyJsonBtn = document.getElementById("copy-json");
-    const startNewBtn = document.getElementById("start-new-from");
-
-    function esc(s){
-      return String(s ?? "")
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;");
-    }
-
-    async function loadTasksList(){
-      pick.innerHTML = "<option>Ładowanie…</option>";
-      const src = srcSel.value;
-      const res = await fetch(`/api/tasks_list?src=${encodeURIComponent(src)}`, { cache: "no-store" });
-      if (!res.ok) {
-        pick.innerHTML = "<option>Nie udało się pobrać listy</option>";
-        return;
-      }
-      const data = await res.json();
-
-      pick.innerHTML = data.map(t => {
-        const label = `${t.id} | ${t.zrodlo ?? ""} ${t.rok ?? ""} ${t.miesiac ?? ""} | nr: ${t.nr_zad ?? ""}`;
-        return `<option value="${esc(t.id)}">${esc(label)}</option>`;
-      }).join("");
-    }
-
-    refreshBtn.addEventListener("click", loadTasksList);
-    document.addEventListener("DOMContentLoaded", loadTasksList);
-
-    async function loadTaskById(id){
-      const src = srcSel.value;
-      const res = await fetch(`/api/task/${encodeURIComponent(id)}?src=${encodeURIComponent(src)}`, { cache: "no-store" });
-      const data = await res.json().catch(()=>({}));
-      if (!res.ok || !data.ok) {
-        alert("Nie udało się wczytać zadania.");
-        return null;
-      }
-      return data;
-    }
-
-    loadBtn.addEventListener("click", async () => {
-      const id = pick.value;
-      if (!id) return;
-      const data = await loadTaskById(id);
-      if (!data) return;
-
-      editId.value = data.record.id;
-      editJson.value = JSON.stringify(data.record, null, 2);
-      // html jest w data.html (na razie tylko do otwarcia w nowej karcie)
-    });
-
-    openBtn.addEventListener("click", async () => {
-      const id = pick.value;
-      if (!id) return;
-      const data = await loadTaskById(id);
-      if (!data) return;
-
-      const htmlRel = data.record.html; // np. ../tasks_private/ID.html
-      if (!htmlRel) { alert("Brak ścieżki HTML w rekordzie."); return; }
-
-      // zamiana ../ na /
-    const url = htmlRel.startsWith("../") ? htmlRel.slice(2) : htmlRel;
-      window.open(url, "_blank");
-    });
-
-    copyJsonBtn.addEventListener("click", async () => {
-      await navigator.clipboard.writeText(editJson.value || "");
-      alert("Skopiowano JSON do schowka.");
-    });
-
-    startNewBtn.addEventListener("click", () => {
-      alert("Tu w następnym kroku podepniemy przeniesienie danych do formularza w trybie 'Dodaj'.");
-    });
-  </script>
+  <!-- ===== zapis ===== -->
+  <div class="row">
+    <button type="button" id="save-update" class="primary">💾 Zapisz zmiany (nadpisz)</button>
+    <button type="button" id="cancel" class="ghost">Anuluj</button>
+  </div>
+</form>
+<script src="edytor.js"></script>
+  
 </body>
 </html>
-

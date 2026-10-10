@@ -2,6 +2,7 @@
 <html lang="pl">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GeoFinder – Menedżer zadań</title>
 
   <!-- Jeśli chcesz, żeby linie/tabele wyglądały IDENTYCZNIE jak w generatorze,
@@ -13,12 +14,24 @@
 
 <body>
 
-<h1>🗃️ Menedżer zadań – dodaj zadanie</h1>
+<fieldset class="uwa">
+  <legend>📦 Import zadania (.geofinder.zip)</legend>
+
+  <div class="row">
+    <input type="file" id="import-file" accept=".zip" />
+    <button type="button" id="import-btn">📥 Importuj paczkę</button>
+  </div>
+
+  <p class="hint">Import wgra HTML zadania, załączniki i dopisze/ nadpisze rekord w JSON.</p>
+</fieldset>
+
+
+<h1>➕ Dodaj nowe zadanie</h1>
 
 <form id="task-form">
 
   <!-- ================= META GŁÓWNA ================= -->
-<fieldset class="grid">
+  <fieldset class="grid">
     <legend>📌 Meta dane</legend>
 
     <label>Źródło
@@ -302,10 +315,10 @@
   </fieldset>
 
 
-  <button type="button" id="save-task">💾 Zapisz zadanie (później)</button>
+  <button type="button" id="save-task">💾 Zapisz zadanie</button>
 
 </form>
 
-<script src="meneger.js"></script>
+<script src="meneger.js" defer></script>
 </body>
 </html>

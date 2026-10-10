@@ -19,39 +19,24 @@ ROOT = Path(os.environ.get("GEOFINDER_ROOT", str(Path(__file__).resolve().parent
 print("ROOT =", ROOT)
 print("CWD  =", Path().resolve())
 
-def get_paths(target: str):
-    
-    target = (target or "private").lower()
-    if target not in ("private", "public"):
-        target = "private"
-
-    data_json = ROOT / "data" / ("tasks.json" if target == "public" else "tasks_private.json")
-    tasks_dir = ROOT / ("tasks_public" if target == "public" else "tasks_private")
-    att_dir   = ROOT / ("attachment_public" if target == "public" else "attachment_private")
-    img_dir   = ROOT / ("img_public" if target == "public" else "img_private")
-
-    for p in [tasks_dir, att_dir, img_dir, data_json.parent]:
+def get_paths(target=None):
+    # Stare parametry target/src są akceptowane, ale nie wybierają innej bazy.
+    data_json = ROOT / "data" / "tasks.json"
+    tasks_dir, att_dir, img_dir = (ROOT / name for name in ("tasks", "attachment", "img"))
+    for p in (tasks_dir, att_dir, img_dir, data_json.parent):
         p.mkdir(parents=True, exist_ok=True)
     if not data_json.exists():
         data_json.write_text("[]", encoding="utf-8")
-
-    return data_json, tasks_dir, att_dir, img_dir, target
-
-
-# DOPASUJ do swojej struktury:
-#DATA_JSON = ROOT / "data" / "tasks_private.json"
-#TASKS_DIR = ROOT / "tasks_private"
-#ATT_DIR   = ROOT / "attachment_private"
-#IMG_DIR   = ROOT / "img_private"
+    return data_json, tasks_dir, att_dir, img_dir, "general"
 
 
-def rel_paths(target: str):
-    t = "public" if target == "public" else "private"
-    return {
-        "tasks": f"../tasks_{t}",
-        "att":   f"../attachment_{t}",
-        "img":   f"../img_{t}",
-    }
+def rel_paths(target=None):
+    return {"tasks": "../tasks", "att": "../attachment", "img": "../img"}
+
+
+def unified_path(value):
+    return re.sub(r"(^|/)(tasks|attachment|img)_(?:private|public)(?=/)",
+                  r"\1\2", str(value or "").replace("\\", "/"))
 
 
 def norm(v):
@@ -243,7 +228,7 @@ def show_teacher_qr():
 
 @APP.route("/api/save_task", methods=["POST"])
 def save_task():
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
     R = rel_paths(target)
     try:
@@ -373,13 +358,8 @@ def import_package():
     from pathlib import PurePosixPath
     import copy
 
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
 
-    if target not in ("private", "public"):
-        return jsonify({
-            "ok": False,
-            "error": "Nieprawidłowa baza."
-        }), 400
 
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
 
@@ -428,7 +408,7 @@ def import_package():
                     "att": "attachment"
                 }.get(folder, folder)
 
-                return f"../{folder}_{target}/"
+                return f"../{folder}/"
 
             url = re.sub(
                 r"^(?:\.\./|\./|/)?"
@@ -617,7 +597,7 @@ def import_package():
                 )
 
                 record["html"] = (
-                    f"../tasks_{target}/{task_id}.html"
+                    f"../tasks/{task_id}.html"
                 )
 
                 for which in ("att1", "att2"):
@@ -663,7 +643,7 @@ def import_package():
                     record[f"{which}_id"] = att_id
 
                     record[f"{which}_src"] = (
-                        f"../attachment_{target}/{att_id}.html"
+                        f"../attachment/{att_id}.html"
                     )
 
                 record["if_att"] = (
@@ -790,7 +770,7 @@ def import_package():
 
 @APP.route("/api/export_task/<task_id>")
 def export_task(task_id):
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
 
     tasks = json.loads(DATA_JSON.read_text(encoding="utf-8"))
@@ -838,8 +818,8 @@ print("META_SUGGESTIONS ROUTE LOADED")
 
 @APP.get("/api/meta_suggestions")
 def meta_suggestions():
-    # bierzemy z DATA_JSON (Twoje tasks_private.json)
-    target = request.args.get("target", "private")
+    # Jedna wspólna baza data/tasks.json
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
 
     tasks = json.loads(DATA_JSON.read_text(encoding="utf-8"))
@@ -881,7 +861,7 @@ def meta_suggestions():
 
 @APP.post("/api/reset_attachments")
 def reset_attachments():
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
 
     mode = (request.get_json(silent=True) or {}).get("mode", "soft")
@@ -924,7 +904,7 @@ def reset_attachments():
 
 @APP.post("/api/fix_title")
 def fix_title():
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
 
     payload = request.get_json(silent=True) or {}
@@ -952,7 +932,7 @@ def fix_title():
 
 @APP.post("/api/rename_attachment")
 def rename_attachment():
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
     R = rel_paths(target)
 
@@ -1014,7 +994,7 @@ def rename_attachment():
 
 @APP.post("/api/update_task")
 def update_task():
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
     R = rel_paths(target)
     try:
@@ -1148,7 +1128,7 @@ def update_task():
 
 @APP.post("/api/export_tasks")
 def export_tasks():
-    target = request.args.get("target", "private")
+    target = request.args.get("target", "general")
     DATA_JSON, TASKS_DIR, ATT_DIR, IMG_DIR, target = get_paths(target)
 
     payload = request.get_json(silent=True) or {}
@@ -1210,8 +1190,8 @@ def export_tasks():
 
 @APP.get("/api/tasks_list")
 def tasks_list():
-    src = request.args.get("src", "private")
-    path = (ROOT / "data" / ("tasks.json" if src == "public" else "tasks_private.json"))
+    src = request.args.get("src", "general")
+    path = ROOT / "data" / "tasks.json"
 
     if not path.exists():
         return jsonify([])
@@ -1231,8 +1211,8 @@ def tasks_list():
 
 @APP.get("/api/task/<task_id>")
 def get_task(task_id):
-    src = request.args.get("src", "private")
-    path = (ROOT / "data" / ("tasks.json" if src == "public" else "tasks_private.json"))
+    src = request.args.get("src", "general")
+    path = ROOT / "data" / "tasks.json"
 
     if not path.exists():
         return jsonify({"ok": False, "error": "no db"}), 404
@@ -1248,15 +1228,11 @@ def get_task(task_id):
     if html_rel.startswith("../"):
         html_rel = html_rel[3:]
 
-    # kompatybilność ze starymi folderami:
-    if src == "private":
-        html_rel = html_rel.replace("tasks/", "tasks_private/")
-        html_rel = html_rel.replace("attachment/", "attachment_private/")
-        html_rel = html_rel.replace("img/", "img_private/")
-    else:
-        html_rel = html_rel.replace("tasks/", "tasks_public/")
-        html_rel = html_rel.replace("attachment/", "attachment_public/")
-        html_rel = html_rel.replace("img/", "img_public/")
+    html_rel = unified_path(html_rel)
+    rec = dict(rec)
+    for field in ("html", "att1_src", "att2_src"):
+        if rec.get(field):
+            rec[field] = unified_path(rec[field])
 
     html_path = ROOT / html_rel
 
