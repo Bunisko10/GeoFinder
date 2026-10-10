@@ -2,19 +2,21 @@
 
 **GeoFinder** to narzędzie do wyszukiwania i generowania zestawów zadań maturalnych z geografii na podstawie filtrów.
 
-Projekt działa lokalnie w przeglądarce z użyciem prostego serwera HTTP.  
-Nie da się go uruchomić przez dwuklik (`file:///`), ponieważ korzysta z JavaScript (`fetch`).
+Projekt działa w dwojaki sposób.
 
-Generator jest również dostępny online przez GitHub Pages:
-
-- https://bunisko10.github.io/GeoFinder/print/generator_student.html  
-- https://bunisko10.github.io/GeoFinder/print/generator_teacher.html  
-
+- Generator działa internetowo przez GitHub Pages:
+  https://bunisko10.github.io/GeoFinder/index.html
+  W tej wersji oferuje on tylko możliwość generowania zadań i ich wydruku
+  
+- Generator działa również jako narzędzie Desktop (lokalnie na własnym komputerze)
+  W tej wersji narzędzie oferuje również możliwość dodawania swoich zadań i ich edycji
+  Aby pobrać narzędzie należy wejść na repozytorium projektu, kliknąć w zielony przycisk `Code` i na dole będzie `Download ZIP`. Należy go pobrać i rozpakować.
+  
 ---
 
 ## Wymagania
 
-- **Python 3.x**
+- **Dobre chęci**
 
 ---
 
@@ -34,53 +36,14 @@ GeoFinder **nie jest gotowym arkuszem ani „ściągą”** – to narzędzie do
 
 ## Instrukcja uruchomienia lokalnie
 
-### 1. Zainstaluj Pythona
+### 1. Otwórz generator
 
-Pobierz Pythona z:
-https://www.python.org/downloads/
-
-Podczas instalacji zaznacz:
-- **Add Python to PATH**
-
-
-### 2. (Jeśli Python nie działa – Windows)
-
-1. Ustawienia → **Apps** → **App execution aliases**
-2. Wyłącz:
-   - `python.exe`
-   - `python3.exe`
-
-
-### 3. Sprawdź instalację
-
-Otwórz wiersz poleceń (cmd) i wpisz:
-
-```bash
-python --version
-```
-Jeżeli zwróci np. ```Python 3.14.2 ```— wszystko ok.
-
-### 4. Uruchom serwer
-
-Przejdź do folderu projektu:
-```cd "C:\twoja\ścieżka\do\GEOFINDER"```
-
-Uruchom serwer:
-```python -m http.server```
+W folderze odnajdź plik `GeoFinder.exe`. 
+Automatycznie odpali się przeglądarka z odpalonym narzędziem.
 
 ⚠️ Nie zamykaj okna cmd — serwer musi pozostać uruchomiony podczas korzystania z generatora.
 
-
-### 5. Otwórz generator
-
-W przeglądarce wejdź na:
-
-```http://localhost:8000/print/generator_student.html```
-
-```http://localhost:8000/print/generator_teacher.html```
-
-
-### 6. W panelu wyboru zaznacz
+### 2. W panelu wyboru zaznacz
 
 - rok arkusza (np. 2025),
 
@@ -89,14 +52,14 @@ W przeglądarce wejdź na:
 - (opcjonalnie) inne filtry.
 
 
-### 7. Kliknij przycisk „Generuj arkusz” lub "Generuj losowe zadania"
+### 3. Kliknij przycisk „Generuj arkusz” lub "Generuj losowe zadania"
 
 Generuj arkusz zwraca zawsze identyczną pule zadań.
 Dlatego w przypadku chęci użycia filtrów takich **czas pracy**, **liczba punktów** czy **liczba zadań**,
 polecam użyć funkcji Generuj losowe zadania.
 
 
-### 8. Generator automatycznie
+### 4. Generator automatycznie
 
 - wyszuka zadania spełniające wybrane kryteria,
 - złoży je w jeden arkusz,
@@ -106,7 +69,7 @@ polecam użyć funkcji Generuj losowe zadania.
 - w razie potrzeby może wydrukować również odpowiedzi do zadań.
 
 
-### 9. Wygenerowany arkusz możesz
+### 5. Wygenerowany arkusz możesz
 
 - rozwiązać bezpośrednio w przeglądarce,
 - wydrukować,
@@ -121,55 +84,18 @@ polecam użyć funkcji Generuj losowe zadania.
 
 ### 1. Edycja bazy danych (Excel)
 
-Otwórz plik ```GEOFINDER_index.xlsx```
+Naciśnij przycisk ```Meneger zadań ```
 
-Dodaj nowe wiersze z danymi zadania:
-
-- rok,
-- typ zadania,
-- punkty,
-- flaga student (T / puste)
-- kolumna html – nazwa pliku zadania (KLUCZ!)
-- itd.
-
-***Zapisz plik.***
-
-**⚠️ Uwaga: wartości w kolumnie html:**
-- muszą być unikalne,
-- nie mogą się powtarzać,
-- muszą dokładnie odpowiadać nazwie pliku HTML zadania.
+Możesz wybrać czy chcesz dodać czy wyedytować zadanie
 
 ### 2. Instalacja wymaganych bibliotek (jednorazowo)
 
 Ten krok wykonujesz tylko raz (jeśli nie masz jeszcze bibliotek).
 
-Otwórz Wiersz poleceń (cmd) (Start → wpisz cmd → Enter)
-
-Przejdź do folderu projektu:
-
-```cd "C:\ścieżka\do\GEOFINDER"```
-
-
-Zainstaluj wymagane biblioteki:
-
-```pip install -r requirements.txt```
-
-
-Jeżeli polecenie zakończy się bez błędów — wszystko jest gotowe.
 
 ### 3. Generowanie plików JSON
 
-Otwórz Wiersz poleceń (cmd)
 
-Przejdź do folderu projektu
-
-Uruchom skrypt:
-
-```python convert_index_to_json.py```
-
-
-**⚠️ Dwukrotne kliknięcie pliku .py może działać tylko w niektórych konfiguracjach systemu.
-Zalecaną metodą jest uruchamianie skryptu przez wiersz poleceń.**
 
 ### 4. Dodanie treści zadania (HTML)
 
@@ -195,22 +121,7 @@ Jeśli zadanie jest rozbite:
 
 ⚠️ Nazwy plików nie mogą się dublować.
 
-### 5. Styl i poprawność HTML
 
-Baza zadań opiera się na HTML
-
-Należy trzymać się istniejącego style.css
-
-Nie dodawaj własnych stylów inline (jeżeli nie ogarniasz)
-
-Jeżeli:
-- coś się nie wyświetla poprawnie,
-- nie wiesz, jak odwzorować tabelę lub układ zadania
-
-➡️ Najprościej: wklej do ChatGPT (lub innego narzędzia AI):
-- fragment style.css,
-- screen zadania
-- i wygeneruj HTML zgodny ze stylem projektu.
 
 ## 6. Załączniki (mapy, ilustracje)
 
@@ -219,15 +130,10 @@ Jeżeli zadanie zawiera:
 - schemat
 - rysunek
 
-Dodaj plik graficzny do folderu /img.
+Dodaj plik graficzny w miejscach "Załączniki"
+Jeżeli zadanie jest wiązką lub mapa, i załącznik odnosi do więcej niż jednego zadania, załącznik należy dodać tylko raz. 
+Program automatycznie dowiązuje dany załącznik do innych zadań, o ile prawidłowo zostaly one opisane w metadanych.
 
-Jeśli przerabiasz załącznik na HTML (np. by zachować layout / podpisy), dodaj go do folderu /attachments.
-
-W HTML zadania:
-- użyj unikalnych id,
-- nie dubluj nazw plików.
-
-⚠️ Duplikaty ID lub nazw plików mogą powodować błędy w generatorze.
 
 --- 
 
@@ -237,6 +143,9 @@ Nie zmieniaj struktury folderów projektu — generator korzysta z konkretnych �
 Zmiana nazw lub lokalizacji folderów może spowodować błędy działania.
 
 ---
+*W przyszłości może dzięki LAN będzie możliwość robienia testów uczniom przez telefon - uczniowie łączą się na ten sam wi-fi jak laptop nauczyciela, skanują kod QR, wypełniają zadania w teleforach i zakończ, zwraca nauczycielowi zebrane odpowiedzi w folderze odpowiedzi*
+
+*W przyszłości może import i export zadań w łatwy sposób, żeby można się było dzielić w łatwy sposób*
 
 ## Inspiracje
 
@@ -247,6 +156,8 @@ Projekt GeoFinder nie jest kopią istniejących rozwiązań — został zaprojek
 Informacja o źródłach materiałów
 
 Projekt GeoFinder wykorzystuje treści zadań maturalnych pochodzące z arkuszy Centralnej Komisji Egzaminacyjnej (CKE).
+
+Dla Ambitnych - projekt można dostosować na potrzeby innych przedmiotów. 
 
 ---
 
