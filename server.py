@@ -435,14 +435,14 @@ def import_package():
     try:
         # ---------- Wczytanie ZIP ----------
 
-        max_zip_size = 50 * 1024 * 1024
-        max_unpacked_size = 200 * 1024 * 1024
+        max_zip_size = 500 * 1024 * 1024
+        max_unpacked_size = 1024 * 1024 * 1024
 
         raw = upload.read(max_zip_size + 1)
 
         if len(raw) > max_zip_size:
             raise ValueError(
-                "Paczka ZIP przekracza 50 MB."
+                "Paczka ZIP przekracza 500 MB."
             )
 
         # Najpierw przygotowujemy wszystkie dane.
@@ -453,12 +453,12 @@ def import_package():
             infos = archive.infolist()
 
             if (
-                len(infos) > 5000
+                len(infos) > 20000
                 or sum(info.file_size for info in infos)
                 > max_unpacked_size
             ):
                 raise ValueError(
-                    "Paczka zawiera zbyt wiele danych."
+                    "Paczka przekracza limit 20 000 plików lub 1 GB danych po rozpakowaniu."
                 )
 
             members = {}

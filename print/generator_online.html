@@ -4,15 +4,37 @@
   <meta charset="UTF-8">
   <title>GeoFinder – generator arkuszy (nauczyciel) v.1.0 </title>
   <link rel="stylesheet" href="../style.css">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
 @media screen {
- #department-picker summary {cursor:pointer;padding:8px;border:1px solid #ccc;border-radius:6px}
- #department-search {width:100%;box-sizing:border-box;margin:8px 0;padding:8px}
- #filters #filter-dzial {display:block;max-height:300px;overflow:auto}
- #filters #filter-dzial label {display:flex!important;align-items:flex-start;white-space:normal;gap:8px;padding:6px 2px;font-size:14px}
- #filter-dzial input {flex:0 0 auto;margin-top:3px}
- #generator-status {padding:8px;color:#344054}
+  #filters {display:grid!important;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;align-items:start;padding:20px;background:#f5f7fb;border:1px solid #e0e6ef;border-radius:14px}
+  #filters > .filter-group {min-width:0;width:auto!important;margin:0!important;padding:0!important}
+  #filters > .filter-group:first-child {grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
+  #filters .filter-group > strong {display:block;margin-bottom:7px;color:#344054;font-size:13px}
+  #filters .filter-picker {display:block;width:100%;border:1px solid #d0d8e4;border-radius:10px;background:#fff;overflow:hidden}
+  #filters .filter-picker summary {display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;padding:11px 13px;font-size:14px;list-style:none;color:#26354b;min-height:44px}
+  #filters .filter-picker summary::-webkit-details-marker {display:none}
+  #filters .filter-picker summary::after {content:'▾';color:#667085;font-size:15px;flex:0 0 auto}
+  #filters .filter-picker[open] summary {border-bottom:1px solid #e6ebf2;background:#f9fbff}
+  #filters .filter-picker[open] summary::after {content:'▴'}
+  #filters .filter-picker summary:focus-visible,#filters button:focus-visible {outline:2px solid #477bd3;outline-offset:-2px}
+  #filters .picker-content {padding:10px}
+  #filters .picker-search {width:100%;box-sizing:border-box;margin:0 0 9px;padding:9px 10px;border:1px solid #d0d8e4;border-radius:7px;font:inherit;font-size:13px}
+  #filters .picker-actions {display:flex;gap:6px;flex-wrap:wrap;margin-bottom:9px}
+  #filters .picker-actions button {font-size:12px;padding:6px 9px;border:1px solid #d0d8e4;border-radius:6px;background:#f8fafc;color:#344054;cursor:pointer}
+  #filters .picker-actions button:hover {background:#eaf1fc;border-color:#9fb9df}
+  #filters .picker-list,#filters #filter-dzial {display:block!important;max-height:270px;overflow-y:auto;overscroll-behavior:contain;padding-right:4px}
+  #filters .picker-list label,#filters #filter-dzial label {display:flex!important;align-items:flex-start;white-space:normal;gap:9px;padding:7px 6px;font-size:13px;line-height:1.4;border-radius:5px;cursor:pointer;overflow-wrap:anywhere;margin:0!important}
+  #filters .picker-list label:hover {background:#f1f5fc}
+  #filters .picker-list label[hidden],#filters .picker-list h4[hidden] {display:none!important}
+  #filters .picker-list input[type=checkbox] {flex:0 0 auto;width:16px;height:16px;margin:1px 0 0;accent-color:#3567b2}
+  #filters .picker-list h4 {color:#667085;border-top:1px solid #edf0f5;padding-top:10px}
+  #filters .picker-empty {font-size:13px;color:#667085;margin:8px 3px}
+  #filters .picker-empty[hidden] {display:none}
+  #filters input[type=text],#filters select {max-width:100%;box-sizing:border-box}
+  #generator-status {padding:8px;color:#344054}
 }
+@media screen and (max-width:560px) {#filters {grid-template-columns:1fr;padding:12px}}
 </style></head>
 <body data-mode="student">
 <h1 class="no-print">GeoFinder – generator arkusza v.1.0</h1>
@@ -28,35 +50,123 @@
   </div>
   <div class="filter-group">
     <strong>Źródło:</strong>
-    <div id="filter-zrodlo"></div>
+    <details class="filter-picker" data-picker-field="zrodlo">
+      <summary id="filter-summary-zrodlo">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input class="picker-search" type="search" placeholder="Wyszukaj…" aria-label="Wyszukaj: Źródło">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-zrodlo"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
   </div>
   <div class="filter-group">
     <strong>Formuła:</strong>
-    <div id="filter-formula"></div>
+    <details class="filter-picker" data-picker-field="formula">
+      <summary id="filter-summary-formula">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input class="picker-search" type="search" placeholder="Wyszukaj…" aria-label="Wyszukaj: Formuła">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-formula"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
   </div>
   <div class="filter-group">
     <strong>Rok:</strong>
-    <div id="filter-rok"></div>
+    <details class="filter-picker" data-picker-field="rok">
+      <summary id="filter-summary-rok">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input class="picker-search" type="search" placeholder="Wyszukaj…" aria-label="Wyszukaj: Rok">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-rok"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
   </div>
   <div class="filter-group">
     <strong>Sesja:</strong>
-    <div id="filter-miesiac"></div>
+    <details class="filter-picker" data-picker-field="miesiac">
+      <summary id="filter-summary-miesiac">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input class="picker-search" type="search" placeholder="Wyszukaj…" aria-label="Wyszukaj: Sesja">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-miesiac"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
   </div>
   <div class="filter-group">
     <strong>Poziom:</strong>
-    <div id="filter-poziom"></div>
+    <details class="filter-picker" data-picker-field="poziom">
+      <summary id="filter-summary-poziom">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input class="picker-search" type="search" placeholder="Wyszukaj…" aria-label="Wyszukaj: Poziom">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-poziom"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
   </div>
   <div class="filter-group">
     <strong>Dział:</strong>
-    <details id="department-picker"><summary id="department-summary">Działy: wszystkie</summary>
-<input id="department-search" type="search" placeholder="Wyszukaj dział…" aria-label="Wyszukaj dział">
-<button type="button" onclick="setDepartments(true)">Wszystkie działy</button>
-<button type="button" onclick="setDepartments(false)">Wyczyść wybór</button>
-<div id="filter-dzial"></div></details>
+    <details id="department-picker" class="filter-picker" data-picker-field="dzial">
+      <summary id="department-summary">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input id="department-search" class="picker-search" type="search" placeholder="Wyszukaj dział…" aria-label="Wyszukaj dział">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-dzial"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
+  </div>
+  <div class="filter-group">
+    <strong>Mapa topograficzna:</strong>
+    <details class="filter-picker" data-picker-field="praca_z_topo">
+      <summary id="filter-summary-praca_z_topo">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input class="picker-search" type="search" placeholder="Wyszukaj…" aria-label="Wyszukaj: Mapa topograficzna">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-praca_z_topo"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
   </div>
   <div class="filter-group">
     <strong>Typ zadania:</strong>
-    <div id="filter-typ"></div>
+    <details class="filter-picker" data-picker-field="typ">
+      <summary id="filter-summary-typ">Wczytywanie opcji…</summary>
+      <div class="picker-content">
+        <input class="picker-search" type="search" placeholder="Wyszukaj…" aria-label="Wyszukaj: Typ zadania">
+        <div class="picker-actions">
+          <button type="button" data-picker-select="all">Zaznacz wszystkie</button>
+          <button type="button" data-picker-select="none">Odznacz wszystkie</button>
+        </div>
+        <div class="picker-list" id="filter-typ"></div>
+        <p class="picker-empty" hidden>Brak pasujących opcji.</p>
+      </div>
+    </details>
   </div>
   <div class="filter-group">
     <strong>Druk:</strong>
@@ -107,6 +217,7 @@
   <button onclick="generate('fixed')">Generuj arkusz</button>
   <button onclick="generate('random')">Generuj losowe zadania</button>
   <button onclick="printQuick()">Drukuj arkusz</button>
+  <button type="button" id="export-selected">Eksportuj zaznaczone (ZIP)</button>
 </div>
 <hr class="no-print">
 <div id="summary-box" class="no-print">
@@ -128,6 +239,7 @@
    DANE GLOBALNE
 ========================================================= */
 const TASK_BY_ID = new Map();
+const EXPORT_RAW_TASKS = new Map();
 let CURRENT_TASKS = [];        // zadania w arkuszu (kolejność!)
 let CURRENT_SELECTION = new Set(); // zaznaczone checkboxy
 let ALL_TASKS = [];
@@ -310,6 +422,13 @@ function departmentKey(value) {
  .replace(/[–—-]/g,' ').replace(/\s+/g,' ').trim();
 }
 const DEPARTMENT_RANK=new Map([...BASIC_DEPARTMENTS,...EXTENDED_DEPARTMENTS].map((name,i)=>[departmentKey(name),i]));
+[
+ ["Hydrosfera", ["Litosfera – geologia", "Litosfera – geomorfologia"]],
+ ["Dynamika procesów hydrologicznych", ["Dynamika procesów geologicznych", "Dynamika procesów geomorfologicznych"]]
+].forEach(([parent, names]) => {
+ const rank = DEPARTMENT_RANK.get(departmentKey(parent));
+ names.forEach((name, index) => DEPARTMENT_RANK.set(departmentKey(name), rank + (index + 1) / 10));
+});
 function departmentRank(name) {return DEPARTMENT_RANK.get(departmentKey(name))??Infinity;}
 function compareDepartments(a,b) {
  const ra=departmentRank(a),rb=departmentRank(b);
@@ -335,32 +454,87 @@ function departments(t) {
  return [...new Set(values.flatMap(v=>Array.isArray(v)?v:String(v??'').split(';')).map(v=>String(v).trim()).filter(Boolean))];
 }
 function source(t) {return String(t.zrodlo ?? t.zrodlo_text ?? t.zrodlo_key ?? '').trim();}
-const FILTER_FIELDS=['zrodlo','formula','rok','miesiac','poziom','typ','dzial'];
-function status(message) {document.getElementById('generator-status').textContent=message;}
-function updateDepartments() {
- const all=[...document.querySelectorAll('#filter-dzial .filter')];
- const n=all.filter(c=>c.checked).length;
- document.getElementById('department-summary').textContent=n===all.length?'Działy: wszystkie':`Działy: wybrano ${n} z ${all.length}`;
+function topographicMapOption(task) {
+ const flag=String(task.praca_z_topo??'').trim().toLowerCase();
+ return ['t','tak','true','1','yes'].includes(flag)?'Z mapą topograficzną':'Bez mapy topograficznej';
 }
-function setDepartments(state) {document.querySelectorAll('#filter-dzial .filter').forEach(c=>c.checked=state);updateDepartments();}
-document.getElementById('department-search').addEventListener('input',e=>{
- const q=e.target.value.toLocaleLowerCase('pl');
- document.querySelectorAll('#filter-dzial label').forEach(l=>{l.style.setProperty('display',l.textContent.toLocaleLowerCase('pl').includes(q)?'flex':'none','important');});
- document.querySelectorAll('[data-department-heading]').forEach(h=>{h.hidden=![...document.querySelectorAll('#filter-dzial label')].some(l=>l.dataset.departmentGroup===h.dataset.departmentHeading&&l.style.display!=='none');});
+const FILTER_FIELDS=['zrodlo','formula','rok','miesiac','poziom','typ','dzial','praca_z_topo'];
+function status(message) {document.getElementById('generator-status').textContent=message;}
+function searchKey(value) {
+ return String(value??'').toLocaleLowerCase('pl').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/ł/g,'l').trim();
+}
+function compareFilterValues(field,a,b) {
+ const ka=searchKey(a),kb=searchKey(b);
+ const alphabetical=()=>String(a).localeCompare(String(b),'pl',{numeric:true});
+ function rank(key,list) {const i=list.indexOf(key);return i<0?Infinity:i;}
+ let ra=Infinity,rb=Infinity;
+ if(field==='rok') {
+   const na=Number(a),nb=Number(b);
+   if(Number.isFinite(na)&&Number.isFinite(nb))return nb-na;
+   if(Number.isFinite(na)!==Number.isFinite(nb))return Number.isFinite(na)?-1:1;
+ }
+ if(field==='formula') {
+   const na=Number(a),nb=Number(b);
+   if(Number.isFinite(na)&&Number.isFinite(nb))return na-nb;
+ }
+ if(field==='miesiac') {
+   const months=['styczen','luty','marzec','kwiecien','maj','czerwiec','lipiec','sierpien','wrzesien','pazdziernik','listopad','grudzien'];
+   ra=rank(ka,months);rb=rank(kb,months);
+ }
+ if(field==='poziom') {ra=rank(ka,['podstawowy','rozszerzony']);rb=rank(kb,['podstawowy','rozszerzony']);}
+ if(field==='zrodlo') {
+   const sourceRank=k=>/cke/.test(k)?0:/nowa era/.test(k)?1:/operon/.test(k)?2:3;
+   ra=sourceRank(ka);rb=sourceRank(kb);
+ }
+ if(field==='typ') {
+   const types=['wybor jednokrotny','wybor wielokrotny','pf','prawda/falsz','dobieranie','porzadkowanie','podkreslanie','uzupelnianie luk','uzupelnianie tabeli','podpisywanie rysunku','obliczeniowe','podaj','porownaj','wniosek','wyjasnij','uzasadnij','wykaz','zaproponuj'];
+   ra=rank(ka,types);rb=rank(kb,types);
+ }
+ return (ra===rb?0:ra<rb?-1:1)||alphabetical();
+}
+function updateFilterSummary(field) {
+ const all=[...document.querySelectorAll('#filter-'+field+' .filter')];
+ const n=all.filter(c=>c.checked).length;
+ const summary=document.getElementById(field==='dzial'?'department-summary':'filter-summary-'+field);
+ summary.textContent=!all.length?'Brak opcji w bazie':n===all.length?`Wszystkie (${all.length})`:n===0?`Żadne (0 z ${all.length})`:`Wybrano ${n} z ${all.length}`;
+}
+function updateDepartments() {FILTER_FIELDS.forEach(updateFilterSummary);}
+function setFilterSelection(field,state) {
+ document.querySelectorAll('#filter-'+field+' .filter').forEach(c=>c.checked=state);
+ updateFilterSummary(field);
+}
+function setDepartments(state) {setFilterSelection('dzial',state);}
+function searchFilterOptions(picker) {
+ const q=searchKey(picker.querySelector('.picker-search').value);
+ const labels=[...picker.querySelectorAll('.picker-list label')];
+ labels.forEach(label=>label.hidden=!searchKey(label.textContent).includes(q));
+ picker.querySelectorAll('[data-department-heading]').forEach(h=>{
+   h.hidden=!labels.some(l=>l.dataset.departmentGroup===h.dataset.departmentHeading&&!l.hidden);
+ });
+ picker.querySelector('.picker-empty').hidden=labels.some(l=>!l.hidden);
+}
+document.querySelectorAll('.filter-picker').forEach(picker=>{
+ const field=picker.dataset.pickerField;
+ picker.querySelector('.picker-search').addEventListener('input',()=>searchFilterOptions(picker));
+ picker.querySelector('.picker-list').addEventListener('change',()=>updateFilterSummary(field));
+ picker.querySelectorAll('[data-picker-select]').forEach(button=>{
+   button.addEventListener('click',()=>setFilterSelection(field,button.dataset.pickerSelect==='all'));
+ });
 });
-document.getElementById('filter-dzial').addEventListener('change',updateDepartments);
+
 async function initFilters() {
  status('Wczytywanie bazy…');
  const res=await fetch('../data/tasks.json',{cache:'no-store'});
  if(!res.ok) throw new Error(`Nie można wczytać ../data/tasks.json (HTTP ${res.status}).`);
  const data=await res.json();
  if(!Array.isArray(data)) throw new Error('Baza tasks.json musi zawierać tablicę zadań.');
+ EXPORT_RAW_TASKS.clear();data.forEach(t=>{if(t&&t.id!=null)EXPORT_RAW_TASKS.set(String(t.id),JSON.parse(JSON.stringify(t)));});
  ALL_TASKS=[...new Map(data.filter(t=>t && t.id!=null).map(t=>[String(t.id),{...t,zrodlo:source(t)}])).values()];
  TASK_BY_ID.clear();ALL_TASKS.forEach(t=>TASK_BY_ID.set(String(t.id),t));
  for(const field of FILTER_FIELDS) {
- const values=field==='dzial'?[...new Set(ALL_TASKS.flatMap(departments))]:uniqueValues(ALL_TASKS,field).map(String);
+ const values=field==='praca_z_topo'?['Z mapą topograficzną','Bez mapy topograficznej']:field==='dzial'?[...new Set(ALL_TASKS.flatMap(departments))]:uniqueValues(ALL_TASKS,field).map(String);
  if(field==='dzial') buildDepartmentList(values);
- else buildCheckboxes('filter-'+field,field,[...new Set(values)].sort((a,b)=>a.localeCompare(b,'pl',{numeric:true})));
+ else buildCheckboxes('filter-'+field,field,field==='praca_z_topo'?values:[...new Set(values)].sort((a,b)=>compareFilterValues(field,a,b)));
  }
  updateDepartments();status(`Wczytano ${ALL_TASKS.length} zadań.`);
 }
@@ -375,7 +549,7 @@ function matches(task, filters) {
  const all=[...document.querySelectorAll(`.filter[data-field="${field}"]`)];
  if(allowed.length===all.length) return true;
  if(!allowed.length) return false;
- const values=field==='dzial'?departments(task):[String(task[field]??'')];
+ const values=field==='praca_z_topo'?[topographicMapOption(task)]:field==='dzial'?departments(task):[String(task[field]??'')];
  return values.some(v=>allowed.includes(v));
  });
 }
@@ -763,6 +937,173 @@ async function printQuick() {
   setTimeout(() => window.print(), 150);
   RENDER_MODE = "screen";
 }
+/* Eksport oryginalnych rekordów i plików. Nie eksportujemy DOM arkusza,
+   ponieważ zawiera on numerację wydruku i pomija powtarzane załączniki. */
+const GeoFinderExport = (() => {
+  const encoder = new TextEncoder();
+  const crcTable = Uint32Array.from({length:256}, (_,n) => {
+    for(let k=0;k<8;k++) n=(n&1)?0xedb88320^(n>>>1):n>>>1;
+    return n>>>0;
+  });
+  function crc32(bytes) {
+    let crc=0xffffffff;
+    for(const b of bytes) crc=crcTable[(crc^b)&255]^(crc>>>8);
+    return (crc^0xffffffff)>>>0;
+  }
+  // Standard ZIP, UTF-8, metoda STORE: bez CDN i bibliotek zewnętrznych.
+  function zip(files) {
+    if(files.size>65535) throw new Error('Za dużo plików w jednej paczce ZIP.');
+    const chunks=[],central=[];let offset=0,centralSize=0;
+    const now=new Date(),year=Math.min(2107,Math.max(1980,now.getFullYear()));
+    const date=((year-1980)<<9)|((now.getMonth()+1)<<5)|now.getDate();
+    const time=(now.getHours()<<11)|(now.getMinutes()<<5)|(now.getSeconds()>>1);
+    for(const [path,bytes] of files) {
+      const name=encoder.encode(path),size=bytes.byteLength,crc=crc32(bytes);
+      if(name.length>65535||size>0xffffffff||offset+30+name.length+size>0xffffffff)
+        throw new Error('Paczka jest za duża. Wyeksportuj mniej zadań naraz.');
+      const local=new Uint8Array(30+name.length),l=new DataView(local.buffer);
+      l.setUint32(0,0x04034b50,true);l.setUint16(4,20,true);l.setUint16(6,0x800,true);
+      l.setUint16(10,time,true);l.setUint16(12,date,true);l.setUint32(14,crc,true);
+      l.setUint32(18,size,true);l.setUint32(22,size,true);l.setUint16(26,name.length,true);
+      local.set(name,30);chunks.push(local,bytes);
+      const entry=new Uint8Array(46+name.length),c=new DataView(entry.buffer);
+      c.setUint32(0,0x02014b50,true);c.setUint16(4,20,true);c.setUint16(6,20,true);
+      c.setUint16(8,0x800,true);c.setUint16(12,time,true);c.setUint16(14,date,true);
+      c.setUint32(16,crc,true);c.setUint32(20,size,true);c.setUint32(24,size,true);
+      c.setUint16(28,name.length,true);c.setUint32(42,offset,true);entry.set(name,46);
+      central.push(entry);centralSize+=entry.length;offset+=local.length+size;
+    }
+    if(offset+centralSize+22>0xffffffff) throw new Error('Paczka przekracza limit ZIP.');
+    const end=new Uint8Array(22),e=new DataView(end.buffer);
+    e.setUint32(0,0x06054b50,true);e.setUint16(8,files.size,true);e.setUint16(10,files.size,true);
+    e.setUint32(12,centralSize,true);e.setUint32(16,offset,true);
+    return new Blob([...chunks,...central,end],{type:'application/zip'});
+  }
+  function cssReferences(text) {
+    const refs=[];
+    const pattern=/url\(\s*(?:"([^"\n]*)"|'([^'\n]*)'|([^\s)'"\n]+))\s*\)|@import\s+["']([^"']+)["']/gi;
+    for(const m of text.matchAll(pattern)) refs.push(m[1]??m[2]??m[3]??m[4]);
+    return refs;
+  }
+  function references(text,isCSS) {
+    if(isCSS)return cssReferences(text);
+    const doc=new DOMParser().parseFromString(text,'text/html'),refs=[];
+    doc.querySelectorAll('[src],[poster],object[data],link[href],a[href],image, use, [srcset]').forEach(el=>{
+      for(const attr of ['src','poster','data','href','xlink:href']) {
+        if(!el.hasAttribute(attr))continue;
+        const value=el.getAttribute(attr);
+        // Links to other pages are navigation, not task dependencies.
+        if(el.tagName==='A'&&!/\.(pdf|png|jpe?g|svg|webp|gif|avif|mp3|mp4|ogg|wav)(?:[?#]|$)/i.test(value))continue;
+        if(el.tagName==='LINK'&&!/^(stylesheet|preload|icon)$/i.test(el.getAttribute('rel')||''))continue;
+        refs.push(value);
+      }
+      // Data URIs are embedded and do not need downloading.
+      const srcset=el.getAttribute('srcset');
+      if(srcset&&!srcset.includes('data:'))for(const s of srcset.split(',')) refs.push(s.trim().split(/\s+/)[0]);
+    });
+    doc.querySelectorAll('style,[style]').forEach(el=>refs.push(...cssReferences(el.tagName==='STYLE'?el.textContent:el.getAttribute('style'))));
+    return refs;
+  }
+  async function collect(records,options={}) {
+    const base=new URL(options.baseURL||document.baseURI),root=new URL('../',base);
+    const fetcher=options.fetcher||fetch,progress=options.progress||(()=>{});
+    const normalize=options.normalize||projectPath,files=new Map(),queue=[],known=new Map();
+    const MAX_BYTES=512*1024*1024;let totalBytes=0,completed=0;
+    function resolve(value,from=base) {
+      if(typeof value!=='string'||!value.trim()||/^(?:data:|blob:|mailto:|tel:|javascript:|#)/i.test(value.trim()))return null;
+      const url=new URL(normalize(value.trim()),from);
+      if(url.protocol!=='http:'&&url.protocol!=='https:') throw new Error('Uruchom generator przez GeoFinder lub GitHub Pages, zamiast otwierać go jako file://.');
+      if(url.origin!==root.origin)throw new Error('Zewnętrzny plik wymaga przeniesienia do projektu przed eksportem: '+url.href);
+      if(!url.pathname.startsWith(root.pathname))throw new Error('Plik znajduje się poza folderem GeoFindera: '+url.pathname);
+      const name=decodeURIComponent(url.pathname.slice(root.pathname.length));
+      if(!name||name.split('/').some(p=>!p||p==='.'||p==='..')||/[\\\u0000-\u001f]/.test(name))throw new Error('Nieprawidłowa ścieżka pliku: '+value);
+      url.hash='';return {url,name};
+    }
+    function enqueue(value,from=base,optional=false) {
+      const item=resolve(value,from);if(!item)return;
+      const prev=known.get(item.name);
+      if(prev){
+        if(!optional){prev.optional=false;if(prev.missing)throw new Error('Brak wymaganego pliku: '+item.name);}
+        return;
+      }
+      item.optional=optional;known.set(item.name,item);queue.push(item);
+    }
+    const copied=records.map(record=>{
+      const r=JSON.parse(JSON.stringify(record));
+      if(!r.id||!r.html)throw new Error('Zadanie nie ma ID lub ścieżki HTML: '+(r.id||'?'));
+      for(const [key,value] of Object.entries(r)) {
+        if(key==='html'||key.endsWith('_src')) {
+          if(typeof value!=='string'||!value.trim())continue;
+          const item=resolve(value);if(!item)continue;
+          enqueue(value);r[key]='../'+item.name;
+          // Maps in the generated CKE packages have a sibling A4 PDF.
+          if(/^att[12]_src$/.test(key)&&/\.html?$/i.test(item.name)) {
+            const pdf=new URL(item.url);pdf.pathname=pdf.pathname.replace(/\.html?$/i,'.pdf');
+            enqueue(pdf.href,base,true);
+          }
+        }
+      }
+      return r;
+    });
+    async function load(item) {
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),30000);
+      let res,bytes;
+      try {
+        res=await fetcher(item.url.href,{cache:'no-store',signal:controller.signal});
+        if(!res.ok){if(item.optional&&res.status===404){item.missing=true;return;}throw new Error('Nie można pobrać '+item.name+' (HTTP '+res.status+').');}
+        bytes=new Uint8Array(await res.arrayBuffer());
+      }catch(e){if(e.name==='AbortError')throw new Error('Przekroczono czas pobierania: '+item.name);throw e;}
+      finally{clearTimeout(timer);}
+      if(item.optional&&/\.pdf$/i.test(item.name)&&new TextDecoder().decode(bytes.slice(0,5))!=='%PDF-'){item.missing=true;return;}
+      const isCSS=/\.css$/i.test(item.name),isHTML=/\.html?$/i.test(item.name);
+      if(isHTML||isCSS||/\.svg$/i.test(item.name)) {
+        let text=new TextDecoder().decode(bytes);
+        if(isHTML)text=normalizeAssetHTML(text);
+        // Normalize the same legacy public-folder aliases inside CSS as in HTML.
+        text=text.replace(/(^|\/)(tasks_public|attachment_public|img_public)(?=\/)/g,(_,slash,folder)=>slash+folder.replace(/_public$/,''));
+        for(const ref of references(text,isCSS))enqueue(ref,item.url);
+        bytes=encoder.encode(text);
+      }
+      totalBytes+=bytes.byteLength;
+      if(totalBytes>MAX_BYTES)throw new Error('Pliki przekraczają 512 MB. Podziel eksport na mniejsze paczki.');
+      files.set(item.name,bytes);progress(++completed,known.size);
+    }
+    // Four simultaneous downloads; nested dependencies are added to the same queue.
+    while(queue.length) {
+      const batch=queue.splice(0,4),results=await Promise.allSettled(batch.map(load));
+      const failed=results.find(r=>r.status==='rejected');if(failed)throw failed.reason;
+    }
+    files.set('meta/tasks.json',encoder.encode(JSON.stringify(copied,null,2)));
+    files.set('data/tasks.json',encoder.encode(JSON.stringify(copied,null,2)));
+    files.set('CZYTAJ.txt',encoder.encode('GEOFINDER — EKSPORT WYBRANYCH ZADAŃ\nRekordy: '+copied.length+'\nPaczka zawiera meta/tasks.json oraz oryginalne HTML, rozwiązania i powiązane pliki.\nImportuj ZIP w menedżerze zadań. Dołączona baza zawiera tylko wybrane rekordy.\nPrzy ręcznym kopiowaniu połącz rekordy po ID; nie zastępuj całej bazy.\nZachowano ID zadań: ponowny import może nadpisać rekord o tym samym ID.\n'));
+    return {files,records:copied};
+  }
+  return {zip,collect,crc32};
+})();
+let exportingTasks=false;
+async function exportSelectedTasks() {
+  if(exportingTasks||generating)return;
+  syncSelectionFromDOM();
+  const chosen=CURRENT_TASKS.filter(t=>CURRENT_SELECTION.has(String(t.id)));
+  if(!chosen.length){status('Najpierw wygeneruj arkusz i zaznacz zadania do eksportu.');return;}
+  exportingTasks=true;
+  const buttons=[...document.querySelectorAll('.toolbar button')];
+  const previous=buttons.map(b=>b.disabled);buttons.forEach(b=>b.disabled=true);
+  try {
+    // initFilters adapts source labels for filtering; export uses untouched DB records.
+    const records=chosen.map(t=>EXPORT_RAW_TASKS.get(String(t.id))||t);
+    const result=await GeoFinderExport.collect(records,{progress:(done)=>status('Eksport: pobrano '+done+' plików…')});
+    status('Przygotowywanie ZIP…');await new Promise(resolve=>setTimeout(resolve,0));
+    const blob=GeoFinderExport.zip(result.files),url=URL.createObjectURL(blob);
+    const date=new Date(),stamp=[date.getFullYear(),String(date.getMonth()+1).padStart(2,'0'),String(date.getDate()).padStart(2,'0')].join('-');
+    const link=document.createElement('a');link.href=url;link.download='GeoFinder_eksport_'+stamp+'_'+chosen.length+'_zadan.zip';
+    document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);
+    status('Przygotowano ZIP: '+chosen.length+' zadań, '+result.files.size+' plików. Pobieranie rozpoczęte.');
+  }catch(e){console.error('Eksport GeoFinder:',e);status('Błąd eksportu: '+e.message);}
+  finally{exportingTasks=false;buttons.forEach((b,i)=>b.disabled=previous[i]);}
+}
+document.getElementById('export-selected').addEventListener('click',exportSelectedTasks);
+
 </script>
 </body>
 </html>
